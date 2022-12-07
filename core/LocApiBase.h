@@ -30,7 +30,7 @@
  /*
  Changes from Qualcomm Innovation Center are provided under the following license:
 
- Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted (subject to the limitations in the
@@ -223,6 +223,7 @@ public:
                           const char* url3, const int maxlength);
     void reportLocationSystemInfo(const LocationSystemInfo& locationSystemInfo);
     void reportDcMessage(const GnssDcReportInfo& dcReport);
+    void reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapabNotification);
     void requestXtraData();
     void requestTime();
     void requestLocation();

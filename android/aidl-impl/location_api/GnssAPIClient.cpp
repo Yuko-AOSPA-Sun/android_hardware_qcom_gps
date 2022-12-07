@@ -103,6 +103,18 @@ static void convertGnssSvStatus(const GnssSvNotification& in,
     }
 }
 
+static void convertGnssSignalType(const GnssCapabNotification& in,
+        std::vector<GnssSignalType>& out) {
+    out.resize(in.count);
+    for (size_t i = 0; i < in.count; i++) {
+        gnss::aidl::implementation::convertGnssConstellationType(in.gnssSignalType[i].svType,
+                out[i].constellation);
+        out[i].carrierFrequencyHz = in.gnssSignalType[i].carrierFrequencyHz;
+        gnss::aidl::implementation::convertGnssMeasurementsCodeType(in.gnssSignalType[i].codeType,
+                in.gnssSignalType[i].otherCodeTypeName, out[i]);
+    }
+}
+
 GnssAPIClient::GnssAPIClient(const shared_ptr<IGnssCallback>& gpsCb) :
     LocationAPIClientBase(),
     mControlClient(new LocationAPIControlClient()),
@@ -196,6 +208,11 @@ void GnssAPIClient::setCallbacks() {
     }
 
     locationCallbacks.gnssMeasurementsCb = nullptr;
+
+    locationCallbacks.gnssSignalTypesCb =
+            [this](const GnssCapabNotification& gnssCapabNotification) {
+        onGnssSignalTypesCb(gnssCapabNotification);
+    };
 
     locAPISetCallbacks(locationCallbacks);
 }
@@ -454,6 +471,10 @@ void GnssAPIClient::updateCapabilities(LocationCapabilitiesMask capabilitiesMask
         data |= IGnssCallback::CAPABILITY_SATELLITE_PVT;
     }
 
+    if (capabilitiesMask & LOCATION_CAPABILITIES_QWES_CARRIER_PHASE_BIT) {
+        data |= IGnssCallback::CAPABILITY_ACCUMULATED_DELTA_RANGE;
+    }
+
     IGnssCallback::GnssSystemInfo gnssInfo = { .yearOfHw = 2015, "aidl-impl" };
 
     if (capabilitiesMask & LOCATION_CAPABILITIES_GNSS_MEASUREMENTS_BIT) {
@@ -467,6 +488,9 @@ void GnssAPIClient::updateCapabilities(LocationCapabilitiesMask capabilitiesMask
                     gnssInfo.yearOfHw++; // 2019
                     if (capabilitiesMask & LOCATION_CAPABILITIES_CONFORMITY_INDEX_BIT) {
                         gnssInfo.yearOfHw += 3; // 2022
+                        if (capabilitiesMask & LOCATION_CAPABILITIES_GNSS_BANDS_BIT) {
+                            gnssInfo.yearOfHw++; // 2023
+                        }
                     }
                 }
             }
@@ -576,6 +600,23 @@ void GnssAPIClient::onEngineLocationsInfoCb(uint32_t count,
         onTrackingCb(locPtr->location);
     }
 }
+
+void GnssAPIClient::onGnssSignalTypesCb(const GnssCapabNotification& gnssCapabNotification) {
+    LOC_LOGd("Enter");
+    mMutex.lock();
+    auto gnssCbIface(mGnssCbIface);
+    mMutex.unlock();
+
+    if (gnssCbIface != nullptr) {
+        std::vector<GnssSignalType> gnssSignalTypes;
+        convertGnssSignalType(gnssCapabNotification, gnssSignalTypes);
+        auto r = gnssCbIface->gnssSetSignalTypeCapabilitiesCb(gnssSignalTypes);
+        if (!r.isOk()) {
+            LOC_LOGe("Error from gnssSvStatusCb");
+        }
+    }
+}
+
 void GnssAPIClient::onStartTrackingCb(LocationError error) {
     LOC_LOGd("]: (%d)", error);
     mMutex.lock();

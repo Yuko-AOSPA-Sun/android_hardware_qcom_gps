@@ -302,7 +302,7 @@ typedef uint64_t LocationCapabilitiesMask;
 // supports startBatching API with minInterval param
 #define   LOCATION_CAPABILITIES_TIME_BASED_BATCHING_BIT           (1<<1)
 // supports startTracking API with minDistance param
-#define  LOCATION_CAPABILITIES_DISTANCE_BASED_TRACKING_BIT       (1<<2)
+#define  LOCATION_CAPABILITIES_DISTANCE_BASED_TRACKING_BIT        (1<<2)
 // supports startBatching API with minDistance param
 #define   LOCATION_CAPABILITIES_DISTANCE_BASED_BATCHING_BIT       (1<<3)
 // supports addGeofences API
@@ -374,14 +374,16 @@ typedef uint64_t LocationCapabilitiesMask;
 #define   LOCATION_CAPABILITIES_PRECISE_LIB_PRESENT              (1<<29)
 // This mask indicates wifi RSSI positioning is
 // enabled by QWES license.
-#define   LOCATION_CAPABILITIES_QWES_WIFI_RSSI_POSITIONING            (1ULL<<30)
+#define   LOCATION_CAPABILITIES_QWES_WIFI_RSSI_POSITIONING       (1ULL<<30)
 // This mask indicates wifi RTT positioning is
 // enabled by QWES license.
-#define   LOCATION_CAPABILITIES_QWES_WIFI_RTT_POSITIONING             (1ULL<<31)
+#define   LOCATION_CAPABILITIES_QWES_WIFI_RTT_POSITIONING        (1ULL<<31)
 // This mask indicates wifi RSSI positioning is supported.
-#define   LOCATION_CAPABILITIES_WIFI_RSSI_POSITIONING                          (1ULL<<32)
+#define   LOCATION_CAPABILITIES_WIFI_RSSI_POSITIONING            (1ULL<<32)
 // This mask indicates wifi RTT positioning is supported.
-#define   LOCATION_CAPABILITIES_WIFI_RTT_POSITIONING                           (1ULL<<33)
+#define   LOCATION_CAPABILITIES_WIFI_RTT_POSITIONING             (1ULL<<33)
+// support GNSS bands
+#define   LOCATION_CAPABILITIES_GNSS_BANDS_BIT                   (1ULL<<34)
 
 typedef uint8_t LocationQwesFeatureType;
 typedef enum {
@@ -1782,9 +1784,16 @@ typedef struct {
     uint32_t count;        // number of items in GnssMeasurements array
     GnssMeasurementsData measurements[GNSS_MEASUREMENTS_MAX];
     GnssMeasurementsClock clock; // clock
+    bool isFullTracking;
     uint32_t agcCount;     // number of items in GnssMeasurementsAgc array
     GnssMeasurementsAgc gnssAgc[GNSS_BANDS_MAX];
 } GnssMeasurementsNotification;
+
+typedef struct {
+    uint32_t size;              // set to sizeof(GnssCapabilitiesNotification)
+    uint32_t count;             // number of SVs in the gnssSignalType array
+    GnssMeasurementsSignalType  gnssSignalType[GNSS_LOC_MAX_NUMBER_OF_SIGNAL_TYPES];
+} GnssCapabNotification;
 
 typedef uint32_t GnssSvId;
 
@@ -2756,6 +2765,13 @@ typedef std::function<void(
    const GnssDcReportInfo& dcReportInfo
 )> gnssDcReportCallback;
 
+/* Informs the framework of the list of GnssSignalTypes the GNSS HAL implementation
+   supports, optional can be NULL
+ */
+typedef std::function<void(
+    const GnssCapabNotification& gnssCapabNotification
+)> gnssSignalTypesCallback;
+
 typedef std::function<void(
 )> locationApiDestroyCompleteCallback;
 
@@ -2813,24 +2829,25 @@ typedef std::function<void(
 
 typedef struct {
     uint32_t size; // set to sizeof(LocationCallbacks)
-    capabilitiesCallback capabilitiesCb;             // mandatory
-    responseCallback responseCb;                     // mandatory
-    collectiveResponseCallback collectiveResponseCb; // mandatory
-    trackingCallback trackingCb;                     // optional
-    batchingCallback batchingCb;                     // optional
-    geofenceBreachCallback geofenceBreachCb;         // optional
-    geofenceStatusCallback geofenceStatusCb;         // optional
-    gnssLocationInfoCallback gnssLocationInfoCb;     // optional
-    gnssNiCallback gnssNiCb;                         // optional
-    gnssSvCallback gnssSvCb;                         // optional
-    gnssNmeaCallback gnssNmeaCb;                     // optional
-    gnssDataCallback gnssDataCb;                     // optional
-    gnssMeasurementsCallback gnssMeasurementsCb;     // optional
-    gnssMeasurementsCallback gnssNHzMeasurementsCb;  // optional
-    batchingStatusCallback batchingStatusCb;         // optional
-    locationSystemInfoCallback locationSystemInfoCb; // optional
-    engineLocationsInfoCallback engineLocationsInfoCb; // optional
-    gnssDcReportCallback gnssDcReportCb;               // optional
+    capabilitiesCallback capabilitiesCb;                // mandatory
+    responseCallback responseCb;                        // mandatory
+    collectiveResponseCallback collectiveResponseCb;    // mandatory
+    trackingCallback trackingCb;                        // optional
+    batchingCallback batchingCb;                        // optional
+    geofenceBreachCallback geofenceBreachCb;            // optional
+    geofenceStatusCallback geofenceStatusCb;            // optional
+    gnssLocationInfoCallback gnssLocationInfoCb;        // optional
+    gnssNiCallback gnssNiCb;                            // optional
+    gnssSvCallback gnssSvCb;                            // optional
+    gnssNmeaCallback gnssNmeaCb;                        // optional
+    gnssDataCallback gnssDataCb;                        // optional
+    gnssMeasurementsCallback gnssMeasurementsCb;        // optional
+    gnssMeasurementsCallback gnssNHzMeasurementsCb;     // optional
+    batchingStatusCallback batchingStatusCb;            // optional
+    locationSystemInfoCallback locationSystemInfoCb;    // optional
+    engineLocationsInfoCallback engineLocationsInfoCb;  // optional
+    gnssDcReportCallback gnssDcReportCb;                // optional
+    gnssSignalTypesCallback gnssSignalTypesCb;          // optional
 } LocationCallbacks;
 
 typedef struct {
