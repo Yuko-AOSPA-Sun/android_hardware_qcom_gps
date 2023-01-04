@@ -4339,8 +4339,9 @@ bool GnssAdapter::needReportForClient(LocationAPI* client, enum loc_sess_status 
     return false;
 }
 
+/** Y2038- Compliant */
 bool GnssAdapter::needToGenerateNmeaReport(const uint32_t &gpsTimeOfWeekMs,
-        const struct timespec32_t &apTimeStamp)
+        const struct timespec64_t &apTimeStamp)
 {
     bool retVal = false;
     uint64_t currentTimeNsec = 0;
@@ -4358,7 +4359,7 @@ bool GnssAdapter::needToGenerateNmeaReport(const uint32_t &gpsTimeOfWeekMs,
                 ((0 != gpsTimeOfWeekMs) && (NMEA_MIN_THRESHOLD_MSEC >= (gpsTimeOfWeekMs % 1000)))) {
                 retVal = true;
             } else {
-                uint64_t timeDiffMsec = ((currentTimeNsec - mPrevNmeaRptTimeNsec) / 1000000);
+                int64_t timeDiffMsec = ((currentTimeNsec - mPrevNmeaRptTimeNsec) / 1000000);
                 // Send when the delta time becomes >= 1 sec
                 if (NMEA_MAX_THRESHOLD_MSEC <= timeDiffMsec) {
                     retVal = true;
@@ -6530,20 +6531,17 @@ GnssAdapter::getDataInformation(GnssDataNotification& data, int msInWeek)
         if ((!reports.mRfAndParams.empty()) && (!reports.mTimeAndClock.empty()) &&
             (abs(msInWeek - (int)reports.mTimeAndClock.back().mGpsTowMs) < 2000)) {
             int maxSig = std::min((int)GNSS_LOC_MAX_NUMBER_OF_SIGNAL_TYPES,
-                    (int)reports.mRfAndParams.back().mJammerData.size());
+                    (int)reports.mRfAndParams.back().mJammerInd.size());
             for (int sig = GNSS_LOC_SIGNAL_TYPE_GPS_L1CA; sig < maxSig; sig++) {
                 data.gnssDataMask[sig] = 0;
                 data.jammerInd[sig] = 0.0;
                 data.agc[sig] = 0.0;
                if (GNSS_INVALID_JAMMER_IND !=
-                       reports.mRfAndParams.back().mJammerData[sig].jammerInd) {
+                       reports.mRfAndParams.back().mJammerInd[sig]) {
                    data.jammerInd[sig] =
-                           (double)reports.mRfAndParams.back().mJammerData[sig].jammerInd;
-                   data.gnssDataMask[sig] |= GNSS_LOC_DATA_JAMMER_IND_BIT;
-               }
-               if (GNSS_INVALID_JAMMER_IND != reports.mRfAndParams.back().mJammerData[sig].agc) {
-                   data.agc[sig] = (double)reports.mRfAndParams.back().mJammerData[sig].agc;
-                   data.gnssDataMask[sig] |= GNSS_LOC_DATA_AGC_BIT;
+                           (double)reports.mRfAndParams.back().mJammerInd[sig];
+                   data.agc[sig] = -(double)reports.mRfAndParams.back().mJammerInd[sig];
+                   data.gnssDataMask[sig] |= (GNSS_LOC_DATA_JAMMER_IND_BIT | GNSS_LOC_DATA_AGC_BIT);
                }
             }
 
