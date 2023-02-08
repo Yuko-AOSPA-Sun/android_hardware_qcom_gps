@@ -2328,9 +2328,13 @@ enum OdcpiRequestType {
 
 /* ODCPI callback priorities*/
 enum OdcpiPrioritytype {
+    //ODCPI callback registered by AFW via IGNSS AIDL has LOW priority
     ODCPI_HANDLER_PRIORITY_LOW,
     ODCPI_HANDLER_PRIORITY_DEFAULT = ODCPI_HANDLER_PRIORITY_LOW,
+    //ODCPI callback registered by IzatProvider on LE/KaiOS has medium priority
     ODCPI_HANDLER_PRIORITY_MEDIUM,
+    //Non emergency ODCPI callback registered by IzatManager for RTT position injection
+    //has high priority
     ODCPI_HANDLER_PRIORITY_HIGH
 };
 
@@ -2893,5 +2897,12 @@ enum PowerStateType {
 typedef uint64_t NetworkHandle;
 #define NETWORK_HANDLE_UNKNOWN  ~0
 #define MAX_NETWORK_HANDLES 10
+
+enum {
+    NON_EMERGENCY_ODCPI = (1<<0),
+    EMERGENCY_ODCPI =     (1<<1)
+} OdcpiCallbackTypeMaskBits;
+
+typedef uint16_t OdcpiCallbackTypeMask;
 
 #endif /* LOCATIONDATATYPES_H */
