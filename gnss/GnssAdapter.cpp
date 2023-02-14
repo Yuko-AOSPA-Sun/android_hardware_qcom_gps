@@ -1224,7 +1224,8 @@ GnssAdapter::setConfig()
         }
         mLocApi->configRobustLocation(
                 mLocConfigInfo.robustLocationConfigInfo.enable,
-                mLocConfigInfo.robustLocationConfigInfo.enableFor911);
+                mLocConfigInfo.robustLocationConfigInfo.enableFor911,
+                nullptr, true);
 
         if (sapConf.GYRO_BIAS_RANDOM_WALK_VALID ||
             sapConf.ACCEL_RANDOM_WALK_SPECTRAL_DENSITY_VALID ||
@@ -7251,7 +7252,7 @@ GnssAdapter::configRobustLocation(uint32_t sessionId,
             LOC_LOGe("memory alloc failed");
         }
     }
-    mLocApi->configRobustLocation(enable, enableForE911, locApiResponse);
+    mLocApi->configRobustLocation(enable, enableForE911, locApiResponse, true);
 }
 
 uint32_t GnssAdapter::configRobustLocationCommand(
@@ -7646,9 +7647,14 @@ void GnssAdapter::configPrecisePositioningCommand(
         inline virtual void proc() const {
             LOC_LOGd("ConfigPrecisePositioning: enable: %d, appHash: %s, featureId: %d", mEnable,
                     mAppHash.c_str(), mFeatureId);
-            mAdapter.mEngHubProxy->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
-            //call QMI API to configPrecisePositioning
-            mAdapter.mLocApi->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
+
+            if (QESDK_FEATURE_ID_EDGNSS == mFeatureId || QESDK_FEATURE_ID_RTK == mFeatureId) {
+                mAdapter.mEngHubProxy->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
+                //call QMI API to configPrecisePositioning
+                mAdapter.mLocApi->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
+            } else if (QESDK_FEATURE_ID_RL == mFeatureId) {
+                mAdapter.mLocApi->configRobustLocation(mEnable, false);
+            }
         }
     };
     sendMsg(new MsgConfigPrecisePositioning(*this, enable, appHash, featureId));

@@ -376,7 +376,8 @@ public:
     virtual void updatePowerConnectState(bool connected);
 
     virtual void configRobustLocation(bool enable, bool enableForE911,
-                                      LocApiResponse* adapterResponse=nullptr);
+                                      LocApiResponse* adapterResponse = nullptr,
+                                      bool enableForE911Valid = false);
     virtual void getRobustLocationConfig(uint32_t sessionId, LocApiResponse* adapterResponse);
     virtual void configMinGpsWeek(uint16_t minGpsWeek,
                                   LocApiResponse* adapterResponse=nullptr);

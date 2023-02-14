@@ -958,7 +958,8 @@ DEFAULT_IMPL()
 void LocApiBase::
     configRobustLocation(bool /*enabled*/,
                          bool /*enableForE911*/,
-                         LocApiResponse* /*adapterResponse*/)
+                         LocApiResponse* /*adapterResponse*/,
+                         bool /*enableForE911Valid*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
