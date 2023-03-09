@@ -2237,6 +2237,13 @@ can runtime disable itself with this exit code*/
 #define PDS_API_ENABLED                 2
 #define QTI_MDM_GNSS_ENABLED            3
 
+typedef enum {
+    LOC_FEATURE_STATUS_UNKNOWN = 0,
+    LOC_FEATURE_STATUS_NONE = 1,
+    LOC_FEATURE_STATUS_OK = 2,
+    LOC_FEATURE_STATUS_EXPIRED = 3
+} LocFeatureStatus;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
