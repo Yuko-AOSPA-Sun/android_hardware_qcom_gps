@@ -1826,8 +1826,10 @@ typedef struct {
 typedef struct {
     uint32_t size;         // set to sizeof(GnssNmeaNotification)
     uint64_t timestamp;  // timestamp
+    LocOutputEngineType locOutputEngType; // engine type
     const char* nmea;    // nmea text
     uint32_t length;       // length of the nmea text
+    bool isSvNmea;         //  is NMEA from SV report or not
 } GnssNmeaNotification;
 
 typedef struct {
@@ -2913,6 +2915,7 @@ typedef struct {
     engineLocationsInfoCallback engineLocationsInfoCb;  // optional
     gnssDcReportCallback gnssDcReportCb;                // optional
     gnssSignalTypesCallback gnssSignalTypesCb;          // optional
+    gnssNmeaCallback engineNmeaCb;                      // optional
 } LocationCallbacks;
 
 typedef struct {
