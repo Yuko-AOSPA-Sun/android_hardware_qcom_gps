@@ -5649,9 +5649,6 @@ bool GnssAdapter::reportQwesCapabilities(
             mAdapter(adapter),
             mFeatureMap(std::move(featureMap)) {}
         inline virtual void proc() const {
-            LOC_LOGi("ReportQwesFeatureStatus before caps %" PRIx64 " ",
-                mAdapter.getCapabilities());
-            ContextBase::setQwesFeatureStatus(mFeatureMap);
             LOC_LOGi("ReportQwesFeatureStatus After caps %" PRIx64 " ",
                 mAdapter.getCapabilities());
             mAdapter.broadcastCapabilities(mAdapter.getCapabilities());
@@ -7854,6 +7851,7 @@ GnssAdapter::initEngHubProxy() {
         GnssAdapterUpdateQwesFeatureStatusCb updateQwesFeatureStatusCb =
             [this] (const std::unordered_map<LocationQwesFeatureType, bool> &featureMap) {
             handleQesdkQwesStatusFromEHub(featureMap);
+            ContextBase::setQwesFeatureStatus(featureMap);
             reportQwesCapabilities(featureMap);
         };
 
@@ -7861,7 +7859,8 @@ GnssAdapter::initEngHubProxy() {
         if(getter != nullptr) {
             // Wait for the script(rootdir/etc/init.qcom.rc) to create socket folder
             locUtilWaitForDir(SOCKET_DIR_EHUB);
-            EngineHubProxyBase* hubProxy = (*getter) (mMsgTask, mSystemStatus->getOsObserver(),
+            EngineHubProxyBase* hubProxy = (*getter) (mMsgTask, mContext,
+                      mSystemStatus->getOsObserver(),
                       mEngServiceInfo, reportPositionEventCb, reqAidingDataCb,
                       updateNHzRequirementCb, updateQwesFeatureStatusCb,
                       [ this ] { return isPreciseEnabled(); });

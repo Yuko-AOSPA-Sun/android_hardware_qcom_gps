@@ -1784,6 +1784,11 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
                     SystemStatusPreciseLocationEnabled(
                         *(static_cast<PreciseLocationEnabledDataItem*>(dataitem))));
             break;
+        case LOC_FEATURE_STATUS_DATA_ITEM_ID:
+            ret = setIteminReport(mCache.mLocFeatureStatus,
+                    SystemStatusLocFeatureStatus(
+                        *(static_cast<LocFeatureStatusDataItem*>(dataitem))));
+            break;
         default:
             break;
     }
@@ -2042,6 +2047,19 @@ bool SystemStatus::eventSetTracking(bool tracking, bool updateSysStatusTrkState)
     SystemStatusTrackingStarted s(tracking);
     mSysStatusObsvr.notify({&s.mDataItem});
     pthread_mutex_unlock(&mMutexSystemStatus);
+    return true;
+}
+
+/******************************************************************************
+@brief      API to update Location feature QWES status
+
+@param[In]  Location feature QWES status
+
+@return     true when successfully done
+******************************************************************************/
+bool SystemStatus::eventLocFeatureStatus(std::unordered_set<int> fids) {
+    SystemStatusLocFeatureStatus  s(fids);
+    mSysStatusObsvr.notify({&s.mDataItem});
     return true;
 }
 } // namespace loc_core

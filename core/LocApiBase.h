@@ -140,6 +140,8 @@ public:
             GnssSvMeasurementHeader& svMeasSetHeader,
             GnssMeasurementsData& measurementData) { return false; }
     inline virtual float getGeoidalSeparation(double latitude, double longitude) { return 0.0; }
+    inline virtual bool checkFeatureStatus(int* fids, LocFeatureStatus* status,
+            uint32_t idCount, bool directQwesCall = false) {return false;}
 };
 
 class LocApiBase {
@@ -183,6 +185,9 @@ public:
         if (nullptr != mMsgTask) {
             mMsgTask->sendMsg(msg);
         }
+    }
+    inline MsgTask* getMsgTask() const {
+        return mMsgTask;
     }
     inline void destroy() {
         close();
