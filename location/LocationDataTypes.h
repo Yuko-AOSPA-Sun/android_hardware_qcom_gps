@@ -127,6 +127,7 @@ typedef enum {
     LOCATION_HAS_QUALITY_TYPE_BIT      = (1<<11), // location has valid quality type
     LOCATION_HAS_TECH_MASK_BIT         = (1<<12), // location has valid tech mask
     LOCATION_HAS_TIME_UNC_BIT          = (1<<13), // location has timeUncMs
+    LOCATION_HAS_SYSTEM_TICK_BIT       = (1<<14), // location has system Tick for qtimer tick count
 } LocationFlagsBits;
 
 typedef uint16_t LocationTechnologyMask;
@@ -1079,6 +1080,7 @@ typedef struct {
     float timeUncMs;             // Time uncertainty in milliseconds
                                  // SPE report: confidence level is 99%
                                  // Other engine report: confidence not unspecified
+    uint64_t systemTick;        // System Tick at GPS Time
 } Location;
 
 typedef enum {

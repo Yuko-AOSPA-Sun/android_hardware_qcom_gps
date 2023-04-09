@@ -453,6 +453,12 @@ GnssAdapter::convertLocation(Location& out, const UlpLocation& ulpLocation,
             out.qualityType = LOCATION_DGNSS_QUALITY_TYPE;
         }
     }
+
+    if ((GPS_LOCATION_EXTENDED_HAS_SYSTEM_TICK & locationExtended.flags) &&
+        (LOC_OUTPUT_ENGINE_SPE == locationExtended.locOutputEngType)) {
+        out.flags |= LOCATION_HAS_SYSTEM_TICK_BIT;
+        out.systemTick = locationExtended.systemTick;
+    }
 }
 
 void GnssAdapter::fillElapsedRealTime(const GpsLocationExtended& locationExtended,
