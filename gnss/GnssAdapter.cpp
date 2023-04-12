@@ -7700,9 +7700,9 @@ void GnssAdapter::configPrecisePositioningCommand(
 
             if (QESDK_FEATURE_ID_EDGNSS == mFeatureId || QESDK_FEATURE_ID_RTK == mFeatureId) {
                 mAdapter.mEngHubProxy->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
-                //call QMI API to configPrecisePositioning
                 mAdapter.mLocApi->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
             } else if (QESDK_FEATURE_ID_RL == mFeatureId) {
+                mAdapter.mLocApi->configPrecisePositioning(mFeatureId, mEnable, mAppHash);
                 mAdapter.mLocApi->configRobustLocation(mEnable, false);
             }
         }
