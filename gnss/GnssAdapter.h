@@ -692,7 +692,6 @@ public:
             mControlCallbacks.nfwStatusCb(notification);
         }
     }
-    void updatePowerState(PowerStateType powerState);
     inline bool getE911State(GnssNiType niType) {
         if (NULL != mControlCallbacks.isInEmergencyStatusCb) {
             return mControlCallbacks.isInEmergencyStatusCb();
