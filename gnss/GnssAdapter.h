@@ -588,9 +588,9 @@ public:
     virtual bool isInSession() { return !mTimeBasedTrackingSessions.empty(); }
     void initDefaultAgps();
     bool initEngHubProxy();
-    inline bool isPreciseEnabled(DlpFeatureStatusMask bits = DLP_FEATURE_STATUS_LIBRARY_PRESENT) {
-        return (mDlpFeatureStatusMask & bits) &&
-                (mDlpFeatureStatusMask &
+    inline bool isPreciseEnabled(PpFeatureStatusMask bits = DLP_FEATURE_STATUS_LIBRARY_PRESENT) {
+        return (mPpFeatureStatusMask & bits) &&
+                (mPpFeatureStatusMask &
                 (DLP_FEATURE_ENABLED_BY_DEFAULT | DLP_FEATURE_ENABLED_BY_QESDK));
     }
     inline bool isQppeEnabled() {
@@ -598,6 +598,10 @@ public:
     }
     inline bool isQfeEnabled() {
         return isPreciseEnabled(DLP_FEATURE_STATUS_QFE_LIBRARY_PRESENT);
+    }
+    inline bool isMlpEnabled() {
+        return mPpFeatureStatusMask &
+            (MLP_FEATURE_ENABLED_BY_DEFAULT | MLP_FEATURE_ENABLED_BY_QESDK);
     }
     void initCDFWService();
     void odcpiTimerExpireEvent();
@@ -631,7 +635,7 @@ public:
     virtual void reportLocationSystemInfoEvent(const LocationSystemInfo& locationSystemInfo);
     virtual void reportDcMessage(const GnssDcReportInfo& dcReport);
     virtual void reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapabNotification);
-
+    virtual void reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask);
     virtual bool requestATL(int connHandle, LocAGpsType agps_type,
                             LocApnTypeMask apn_type_mask,
                             SubId sub_id=DEFAULT_SUB);

@@ -541,6 +541,10 @@ void LocApiBase::reportSignalTypeCapabilities(const GnssCapabNotification& gnssC
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportSignalTypeCapabilities(gnssCapabNotification));
 }
 
+void LocApiBase::reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportModemGnssQesdkFeatureStatus(mask));
+}
+
 void LocApiBase::reportQwesCapabilities
 (
     const std::unordered_map<LocationQwesFeatureType, bool> &featureMap
