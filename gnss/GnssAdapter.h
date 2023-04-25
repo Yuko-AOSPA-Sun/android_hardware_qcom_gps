@@ -395,6 +395,9 @@ class GnssAdapter : public LocAdapterBase {
     uint64_t   mDgnssLastNmeaBootTimeMilli;
     bool mQppeResp;
 
+    /*==== Signal type capabilities ====================================================*/
+    GnssCapabNotification mGnssCapabNotification;
+
 protected:
 
     /* ==== CLIENT ========================================================================= */
