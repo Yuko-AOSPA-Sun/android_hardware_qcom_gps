@@ -206,7 +206,8 @@ GnssAdapter::GnssAdapter() :
     mPowerElapsedRealTimeCal(30000000),
     mPositionElapsedRealTimeCal(30000000),
     mAddressRequestCb(nullptr),
-    mHmacConfig(HMAC_CONFIG_UNKNOWN)
+    mHmacConfig(HMAC_CONFIG_UNKNOWN),
+    mGnssCapabNotification{}
 {
     LOC_LOGD("%s]: Constructor %p", __func__, this);
     mLocPositionMode.mode = LOC_POSITION_MODE_INVALID;
@@ -3050,8 +3051,14 @@ GnssAdapter::updateClientsEventMask()
         }
         if (it->second.gnssSignalTypesCb != nullptr) {
             // GNSS Bands supported
-            LOC_LOGd("GNSS Bands supported");
+            LOC_LOGd("GNSS Bands supported, mGnssCapabNotification.count = %d",
+                     mGnssCapabNotification.count);
             mask |= LOC_API_ADAPTER_BIT_GNSS_BANDS_SUPPORTED;
+            // Calling gnssSignalTypesCb here to pass VTS
+            // not necessary during normal operation, but doesn't hurt
+            if (mGnssCapabNotification.count > 0) {
+                it->second.gnssSignalTypesCb(mGnssCapabNotification);
+            }
         }
     }
 
@@ -5263,6 +5270,8 @@ GnssAdapter::reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapab
             mGnssCapabNotification(gnssCapabNotification) {}
         inline virtual void proc() const {
             LOC_LOGv("Enter");
+            // cache the data (for VTS only)
+            mAdapter.mGnssCapabNotification = mGnssCapabNotification;
             for (auto it = mAdapter.mClientData.begin(); it != mAdapter.mClientData.end(); ++it) {
                 if (it->second.gnssSignalTypesCb != nullptr) {
                     LOC_LOGv("Calling gnssSignalTypesCb");
