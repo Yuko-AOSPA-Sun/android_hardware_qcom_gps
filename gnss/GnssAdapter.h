@@ -398,6 +398,9 @@ class GnssAdapter : public LocAdapterBase {
     /*==== Signal type capabilities ====================================================*/
     GnssCapabNotification mGnssCapabNotification;
 
+    /*==== Qesdk Feature Status ========================================================*/
+    std::string mAppHash;
+
 protected:
 
     /* ==== CLIENT ========================================================================= */
