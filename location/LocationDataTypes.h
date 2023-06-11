@@ -385,6 +385,8 @@ typedef uint64_t LocationCapabilitiesMask;
 #define   LOCATION_CAPABILITIES_WIFI_RTT_POSITIONING             (1ULL<<33)
 // support GNSS bands
 #define   LOCATION_CAPABILITIES_GNSS_BANDS_BIT                   (1ULL<<34)
+// This mask indicates modem 3GPP source is available.
+#define   LOCATION_CAPABILITIES_MODEM_3GPP_AVAIL                 (1ULL<<35)
 
 typedef uint8_t LocationQwesFeatureType;
 typedef enum {
