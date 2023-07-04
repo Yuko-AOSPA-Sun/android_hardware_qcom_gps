@@ -8240,10 +8240,12 @@ void GnssAdapter::enablePPENtripStreamCommand(const GnssNtripConnectionParams& p
 
 void GnssAdapter::handleEnablePPENtrip(const GnssNtripConnectionParams& params,
         bool enableRTKEngine) {
+    uint32_t nmeaUpdateInterval = params.nmeaUpdateInterval ? params.nmeaUpdateInterval :
+            DGNSS_RANGE_UPDATE_TIME_10MIN_IN_SEC;
     LOC_LOGd("%d %s %d %s %s %s %d %d mSendNmeaConsent %d",
              params.useSSL, params.hostNameOrIp.data(), params.port,
              params.mountPoint.data(), params.username.data(), params.password.data(),
-             params.requiresNmeaLocation, params.nmeaUpdateInterval, mSendNmeaConsent);
+             params.requiresNmeaLocation, nmeaUpdateInterval, mSendNmeaConsent);
 
     GnssNtripConnectionParams* pNtripParams = &(mStartDgnssNtripParams.ntripParams);
 
@@ -8254,7 +8256,7 @@ void GnssAdapter::handleEnablePPENtrip(const GnssNtripConnectionParams& params,
             0 == pNtripParams->username.compare(params.username) &&
             0 == pNtripParams->password.compare(params.password) &&
             pNtripParams->requiresNmeaLocation == params.requiresNmeaLocation &&
-            pNtripParams->nmeaUpdateInterval == params.nmeaUpdateInterval &&
+            pNtripParams->nmeaUpdateInterval == nmeaUpdateInterval &&
             mDgnssState & DGNSS_STATE_ENABLE_NTRIP_COMMAND) {
         LOC_LOGd("received same Ntrip param");
         return;
@@ -8266,6 +8268,7 @@ void GnssAdapter::handleEnablePPENtrip(const GnssNtripConnectionParams& params,
     getSystemStatus()->eventNtripStarted(true);
 
     mStartDgnssNtripParams.ntripParams = std::move(params);
+    mStartDgnssNtripParams.ntripParams.nmeaUpdateInterval = nmeaUpdateInterval;
     mStartDgnssNtripParams.enableRTKEngine = enableRTKEngine;
     mStartDgnssNtripParams.nmea.clear();
     if (mSendNmeaConsent && pNtripParams->requiresNmeaLocation) {
