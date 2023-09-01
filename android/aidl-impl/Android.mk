@@ -105,3 +105,5 @@ LOCAL_SHARED_LIBRARIES += \
 LOCAL_CFLAGS += $(GNSS_CFLAGS)
 
 include $(BUILD_EXECUTABLE)
+
+include $(LOCAL_PATH)/fuzzer/Android.mk
