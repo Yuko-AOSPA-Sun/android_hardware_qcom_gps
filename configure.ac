@@ -37,6 +37,10 @@ PKG_CHECK_MODULES([LOCCORE], [loc-core])
 AC_SUBST([LOCCORE_CFLAGS])
 AC_SUBST([LOCCORE_LIBS])
 
+PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
+AC_SUBST([LIBXML_CFLAGS])
+AC_SUBST([LIBXML_LIBS])
+
 AC_ARG_WITH([auto_feature],
     AC_HELP_STRING([--with-auto_feature=@<:@dir@:>@],
         [Using Automotive feature]),
@@ -66,6 +70,12 @@ if test "x$with_locpla_includes" != "xno"; then
 fi
 
 AC_SUBST([CPPFLAGS])
+
+AC_ARG_WITH([telsdk],
+      AC_HELP_STRING([--with-telsdk],
+         [enable telsdk, check prescence of telsdk]))
+
+AM_CONDITIONAL(USE_TELSDK, test "x${with_telsdk}" = "xyes")
 
 AC_ARG_WITH([glib],
       AC_HELP_STRING([--with-glib],

@@ -29,7 +29,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -114,7 +114,9 @@ struct GnssInterface {
     void (*getDebugReport)(GnssDebugReport& report);
     void (*updateConnectionStatus)(bool connected, int8_t type, bool roaming,
                                    NetworkHandle networkHandle, std::string& apn);
-    void (*odcpiInit)(const odcpiRequestCallback& callback, OdcpiPrioritytype priority);
+    void (*odcpiInit)(const odcpiRequestCallback& callback, OdcpiPrioritytype priority,
+           OdcpiCallbackTypeMask typeMask);
+    void (*deRegisterOdcpi)(OdcpiPrioritytype priority, OdcpiCallbackTypeMask typeMask);
     void (*odcpiInject)(const Location& location);
     void (*blockCPI)(double latitude, double longitude, float accuracy,
                      int blockDurationMsec, double latLonDiffThreshold);
@@ -147,7 +149,8 @@ struct GnssInterface {
     uint32_t (*configEngineRunState)(PositioningEngineMask engType,
                                      LocEngineRunState engState);
     uint32_t (*configOutputNmeaTypes)(GnssNmeaTypesMask enabledNmeaTypes,
-                                      GnssGeodeticDatumType nmeaDatumType);
+                                      GnssGeodeticDatumType nmeaDatumType,
+                                      LocReqEngineTypeMask locReqEngTypeMask);
     void (*powerIndicationInit)(const powerIndicationCb powerIndicationCallback);
     void (*powerIndicationRequest)();
     void (*setAddressRequestCb)(std::function<void(const Location&)> addressRequestCb);
@@ -158,6 +161,8 @@ struct GnssInterface {
     uint32_t (*gnssGetXtraStatus)();
     uint32_t (*gnssRegisterXtraStatusUpdate)(bool registerUpdate);
     void (*configPrecisePositioning)(uint32_t featureId, bool enable, std::string appHash);
+    uint32_t (*configMerkleTree) (const char * merkleTreeConfigBuffer, int bufferLength);
+    uint32_t (*configOsnmaEnablement) (bool enable);
 };
 
 struct BatchingInterface {

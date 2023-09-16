@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -194,7 +194,7 @@ volatile int32_t LocApiBase::mMsgTaskRefCount = 0;
 LocApiBase::LocApiBase(LOC_API_ADAPTER_EVENT_MASK_T excludedMask,
                        ContextBase* context) :
     mContext(context),
-    mMask(0), mExcludedMask(excludedMask) {
+    mMask(0), mExcludedMask(excludedMask), mEngineLockState(ENGINE_LOCK_STATE_DISABLED) {
     memset(mLocAdapters, 0, sizeof(mLocAdapters));
 
     android_atomic_inc(&mMsgTaskRefCount);
@@ -260,11 +260,13 @@ bool LocApiBase::needReport(const UlpLocation& ulpLocation,
     } else {
         // intermediate fix is not allowed, only can report out final fixes
         if (LOC_SESS_SUCCESS == status) {
-            // this is a final fix
+            // this is a final fix with satellite and/or sensor contribution
             LocPosTechMask mask =
-                LOC_POS_TECH_MASK_SATELLITE | LOC_POS_TECH_MASK_SENSORS | LOC_POS_TECH_MASK_HYBRID |
-                LOC_POS_TECH_MASK_PROPAGATED;
-            // it is a Satellite fix or a sensor fix
+                LOC_POS_TECH_MASK_SATELLITE | LOC_POS_TECH_MASK_SENSORS;
+#ifndef __ANDROID__
+            // Include propagated GPS fix if not on Android target
+            mask |=  LOC_POS_TECH_MASK_PROPAGATED;
+#endif
             reported = (mask & techMask);
         }
     }
@@ -534,11 +536,22 @@ void LocApiBase::reportDcMessage(const GnssDcReportInfo& dcReport) {
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportDcMessage(dcReport));
 }
 
+void LocApiBase::reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapabNotification) {
+    // loop through adapters, and deliver to all adapters.
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportSignalTypeCapabilities(gnssCapabNotification));
+}
+
+void LocApiBase::reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportModemGnssQesdkFeatureStatus(mask));
+}
+
 void LocApiBase::reportQwesCapabilities
 (
     const std::unordered_map<LocationQwesFeatureType, bool> &featureMap
 )
 {
+    //Set Qwes feature status map in ContextBase
+    ContextBase::setQwesFeatureStatus(featureMap);
     // loop through adapters, and deliver to all adapters.
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportQwesCapabilities(featureMap));
 }
@@ -956,37 +969,39 @@ DEFAULT_IMPL()
 void LocApiBase::
     configRobustLocation(bool /*enabled*/,
                          bool /*enableForE911*/,
-                         LocApiResponse* /*adapterResponse*/)
+                         LocApiResponse* /*adapterResponse*/,
+                         bool /*enableForE911Valid*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
-    getRobustLocationConfig(uint32_t sessionId, LocApiResponse* /*adapterResponse*/)
+    getRobustLocationConfig(uint32_t /*sessionId*/, LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
-    configMinGpsWeek(uint16_t minGpsWeek,
+    configMinGpsWeek(uint16_t /*minGpsWeek*/,
                      LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
-    getMinGpsWeek(uint32_t sessionId, LocApiResponse* /*adapterResponse*/)
+    getMinGpsWeek(uint32_t /*sessionId*/, LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 LocationError LocApiBase::
-    setParameterSync(const GnssConfig& gnssConfig)
+    setParameterSync(const GnssConfig& /*gnssConfig*/)
 DEFAULT_IMPL(LOCATION_ERROR_SUCCESS)
 
 void LocApiBase::
-    getParameter(uint32_t sessionId, GnssConfigFlagsMask flags, LocApiResponse* /*adapterResponse*/)
+    getParameter(uint32_t /*sessionId*/, GnssConfigFlagsMask /*flags*/,
+                 LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
-    configConstellationMultiBand(const GnssSvTypeConfig& secondaryBandConfig,
+    configConstellationMultiBand(const GnssSvTypeConfig& /*secondaryBandConfig*/,
                                  LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 void LocApiBase::
-    getConstellationMultiBandConfig(uint32_t sessionId, LocApiResponse* /*adapterResponse*/)
+    getConstellationMultiBandConfig(uint32_t /*sessionId*/, LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 void LocApiBase::setTribandState(bool /*enabled*/)
@@ -995,6 +1010,13 @@ DEFAULT_IMPL()
 void LocApiBase::
     configPrecisePositioning(uint32_t featureId, bool enable, std::string appHash,
             LocApiResponse* /*adpterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::configMerkleTree(mgpOsnmaPublicKeyAndMerkleTreeStruct* /*merkleTree*/,
+            LocApiResponse* /*adapterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::configOsnmaEnablement(bool /*enable*/, LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 int64_t ElapsedRealtimeEstimator::getElapsedRealtimeEstimateNanos(int64_t curDataTimeNanos,
@@ -1102,12 +1124,8 @@ void ElapsedRealtimeEstimator::saveGpsTimeAndQtimerPairInPvtReport(
         const GpsLocationExtended& locationExtended) {
 
     // Use GPS timestamp and qtimer tick for 1Hz PVT report for association
-    if ((locationExtended.gnssSystemTime.hasAccurateGpsTime() == true) &&
-            (locationExtended.gnssSystemTime.u.gpsSystemTime.systemMsec % 1000 == 0) &&
-            (locationExtended.flags & GPS_LOCATION_EXTENDED_HAS_SYSTEM_TICK) &&
-            (locationExtended.systemTick != 0) &&
-            (locationExtended.flags & GPS_LOCATION_EXTENDED_HAS_SYSTEM_TICK_UNC) &&
-            (locationExtended.systemTickUnc != 0.0f)) {
+    if (locationExtended.isReportTimeAccurate() &&
+            (locationExtended.gnssSystemTime.u.gpsSystemTime.systemMsec % 1000 == 0)) {
         LOC_LOGv("save time association from PVT report with gps time %u %u",
                  locationExtended.gnssSystemTime.u.gpsSystemTime.systemWeek,
                  locationExtended.gnssSystemTime.u.gpsSystemTime.systemMsec);
@@ -1241,4 +1259,5 @@ bool ElapsedRealtimeEstimator::getCurrentTime(
     }
     return clockGetTimeSuccess;
 }
+
 } // namespace loc_core

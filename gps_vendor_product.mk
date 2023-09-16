@@ -8,6 +8,7 @@ PRODUCT_PACKAGES += gnss@2.0-base.policy
 PRODUCT_PACKAGES += gnss@2.0-xtra-daemon.policy
 PRODUCT_PACKAGES += gnss@2.0-qsap-location.policy
 PRODUCT_PACKAGES += gnss@2.0-xtwifi-client.policy
+PRODUCT_PACKAGES += gnss@2.0-edgnss-daemon.policy
 PRODUCT_PACKAGES += libloc_pla_headers
 PRODUCT_PACKAGES += liblocation_api_headers
 PRODUCT_PACKAGES += libgps.utils_headers
@@ -24,5 +25,18 @@ endif #TARGET_BOARD_AUTO
 
 PRODUCT_PACKAGES += android.hardware.gnss-aidl-impl-qti
 PRODUCT_PACKAGES += android.hardware.gnss-aidl-service-qti
+
+## Feature flags - self contained FR in gps module
+# Enable NHz location feature. Default is false.
+# Set this flag to true to enable the NHz location feature.
+FEATURE_LOCATION_NHZ := false
+
+# Soong Namespace - Keys and values
+$(call soong_config_set, qtilocation, feature_nhz, false)
+
+# Enable NHz location feature
+ifeq ($(FEATURE_LOCATION_NHZ),true)
+    $(call soong_config_set, qtilocation, feature_nhz, true)
+endif
 
 endif # ifneq ($(BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE),)

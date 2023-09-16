@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -1175,6 +1175,17 @@ static void loc_nmea_get_fix_quality(const UlpLocation & location,
             break;
         }
         // NOTE: Order of the check is important
+        if (locationExtended.flags & GPS_LOCATION_EXTENDED_HAS_POS_TECH_MASK) {
+            if ((LOC_POS_TECH_MASK_SENSORS & locationExtended.tech_mask) ||
+                    (LOC_POS_TECH_MASK_PROPAGATED & locationExtended.tech_mask)) {
+                ggaGpsQuality[0] = '6'; // 6 means estimated (dead reckoning)
+                rmcModeIndicator = 'E'; // E means estimated (dead reckoning)
+                vtgModeIndicator = 'E'; // E means estimated (dead reckoning)
+                memset(gnsModeIndicator, 'E', 6); // E means estimated (dead reckoning)
+                break;
+            }
+        }
+        // NOTE: Order of the check is important
         if (locationExtended.flags & GPS_LOCATION_EXTENDED_HAS_NAV_SOLUTION_MASK) {
             if (LOC_NAV_MASK_PPP_CORRECTION & locationExtended.navSolutionMask) {
                 ggaGpsQuality[0] = '2';    // 2 means DGPS fix
@@ -1267,7 +1278,7 @@ static void loc_nmea_get_fix_quality(const UlpLocation & location,
         }
         // NOTE: Order of the check is important
         if (locationExtended.flags & GPS_LOCATION_EXTENDED_HAS_POS_TECH_MASK) {
-            if (LOC_POS_TECH_MASK_SATELLITE & locationExtended.tech_mask){
+            if (LOC_POS_TECH_MASK_SATELLITE & locationExtended.tech_mask) {
                 ggaGpsQuality[0] = '1'; // 1 means GPS
                 rmcModeIndicator = 'A'; // A means autonomous
                 vtgModeIndicator = 'A'; // A means autonomous
@@ -1283,13 +1294,6 @@ static void loc_nmea_get_fix_quality(const UlpLocation & location,
                     gnsModeIndicator[4] = 'A'; // A means autonomous
                 if (locationExtended.gnss_sv_used_ids.navic_sv_used_ids_mask ? 1 : 0)
                     gnsModeIndicator[5] = 'A'; // A means autonomous
-                break;
-            } else if ((LOC_POS_TECH_MASK_SENSORS & locationExtended.tech_mask) ||
-                       (LOC_POS_TECH_MASK_PROPAGATED & locationExtended.tech_mask)){
-                ggaGpsQuality[0] = '6'; // 6 means estimated (dead reckoning)
-                rmcModeIndicator = 'E'; // E means estimated (dead reckoning)
-                vtgModeIndicator = 'E'; // E means estimated (dead reckoning)
-                memset(gnsModeIndicator, 'E', 6); // E means estimated (dead reckoning)
                 break;
             }
         }
@@ -1580,6 +1584,11 @@ void loc_nmea_generate_pos(const UlpLocation &location,
                 length = loc_nmea_put_checksum(sentence, sizeof(sentence), false);
                 nmeaArraystr.push_back(sentence);
             }
+        } else {
+            loc_nmea_sv_meta_init(sv_meta, sv_cache_info, GNSS_SV_TYPE_GPS, GNSS_SIGNAL_GPS_L1CA,
+                    true);
+            talker[0] = sv_meta.talker[0];
+            talker[1] = sv_meta.talker[1];
         }
 
         char ggaGpsQuality[3] = {'0', '\0', '\0'};
@@ -2155,13 +2164,13 @@ void loc_nmea_generate_pos(const UlpLocation &location,
         nmeaArraystr.push_back(sentence_DTM);
         // ------$--RMC-------
         nmeaArraystr.push_back(sentence_RMC);
-        if (GEODETIC_TYPE_PZ_90 == mNmeaDatumType) {
+        if ((GEODETIC_TYPE_PZ_90 == mNmeaDatumType) && (mEnabledNmeaTypes & NMEA_TYPE_GNS)) {
             // ------$--DTM-------
             nmeaArraystr.push_back(sentence_DTM);
         }
         // ------$--GNS-------
         nmeaArraystr.push_back(sentence_GNS);
-        if (GEODETIC_TYPE_PZ_90 == mNmeaDatumType) {
+        if (GEODETIC_TYPE_PZ_90 == mNmeaDatumType && (mEnabledNmeaTypes & NMEA_TYPE_GGA)) {
             // ------$--DTM-------
             nmeaArraystr.push_back(sentence_DTM);
         }

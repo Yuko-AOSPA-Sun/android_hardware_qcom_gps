@@ -20,7 +20,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -191,15 +191,12 @@ void GnssMeasurementInterface::startTracking(
 
     locAPISetCallbacks(locationCallbacks);
 
-    TrackingOptions options = {};
-    memset(&options, 0, sizeof(TrackingOptions));
+    TrackingOptions options;
     options.size = sizeof(TrackingOptions);
     options.minInterval = timeBetweenMeasurement;
     options.mode = GNSS_SUPL_MODE_STANDALONE;
-    if (GNSS_POWER_MODE_INVALID != powerMode) {
-        options.powerMode = powerMode;
-        options.tbm = timeBetweenMeasurement;
-    }
+    options.powerMode = powerMode;
+    options.tbm = timeBetweenMeasurement;
 
     std::unique_lock<std::mutex> lock(mMutex);
     mTracking = true;
@@ -238,6 +235,7 @@ void GnssMeasurementInterface::convertGnssData(
             out.gnssAgcs.push_back(gnssAgc0);
         }
     }
+    out.isFullTracking = in.isFullTracking;
 }
 
 void GnssMeasurementInterface::convertGnssMeasurement(
@@ -650,9 +648,9 @@ void GnssMeasurementInterface::convertElapsedRealtimeNanos(
 }
 
 void GnssMeasurementInterface::printGnssData(GnssData& data) {
-    LOC_LOGd(" Measurements Info for %d satellites", data.measurements.size());
+    LOC_LOGd(" Measurements Info for %zu satellites", data.measurements.size());
     for (size_t i = 0; i < data.measurements.size(); i++) {
-        LOC_LOGd("%02d : flags: 0x%08x,"
+        LOC_LOGd("%zu : flags: 0x%08x,"
                  " svid: %d,"
                  " signalType.constellation: %u,"
                  " signalType.carrierFrequencyHz: %.2f,"
@@ -781,7 +779,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
              data.elapsedRealtime.timestampNs,
              data.elapsedRealtime.timeUncertaintyNs);
     for (size_t i = 0; i < data.gnssAgcs.size(); i++) {
-        LOC_LOGd("%02d : "
+        LOC_LOGd("%zu : "
                  " gnssAgcs.agcLevelDb: %.2f,"
                  " gnssAgcs.constellation: %u,"
                  " gnssAgcs.carrierFrequencyHz: %" PRIi64 "",

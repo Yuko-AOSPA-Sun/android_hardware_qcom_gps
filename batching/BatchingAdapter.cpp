@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -225,13 +225,14 @@ BatchingAdapter::handleEngineLockStatusEvent(EngineLockState engineLockState) {
 void
 BatchingAdapter::handleEngineLockStatus(EngineLockState engineLockState) {
 
-    if (ENGINE_LOCK_STATE_ENABLED == engineLockState) {
+    if (ENGINE_LOCK_STATE_DISABLED != engineLockState) {
         for (auto msg: mPendingMsgs) {
             sendMsg(msg);
         }
         mPendingMsgs.clear();
 
         if ((POWER_STATE_SUSPEND != mSystemPowerState) &&
+            (POWER_STATE_DEEP_SLEEP_ENTRY != mSystemPowerState) &&
             POWER_STATE_SHUTDOWN != mSystemPowerState) {
             restartSessions();
         }
@@ -254,13 +255,14 @@ BatchingAdapter::handleEngineUpEvent()
             mAdapter.broadcastCapabilities(mAdapter.getCapabilities());
             mApi.setBatchSize(mAdapter.getBatchSize());
             mApi.setTripBatchSize(mAdapter.getTripBatchSize());
-            if (ENGINE_LOCK_STATE_ENABLED == mApi.getEngineLockState()) {
+            if (ENGINE_LOCK_STATE_DISABLED != mApi.getEngineLockState()) {
                 for (auto msg: mAdapter.mPendingMsgs) {
                     mAdapter.sendMsg(msg);
                 }
                 mAdapter.mPendingMsgs.clear();
 
                 if ((POWER_STATE_SUSPEND != mAdapter.mSystemPowerState) &&
+                    (POWER_STATE_DEEP_SLEEP_ENTRY != mAdapter.mSystemPowerState) &&
                     POWER_STATE_SHUTDOWN != mAdapter.mSystemPowerState) {
                     mAdapter.restartSessions();
                 }
@@ -468,7 +470,7 @@ BatchingAdapter::startBatching(LocationAPI* client, uint32_t sessionId,
     mLocApi->startBatching(sessionId, batchingOptions, getBatchingAccuracy(), getBatchingTimeout(),
             new LocApiResponse(*getContext(),
             [this, client, sessionId, batchingOptions] (LocationError err) {
-        if (ENGINE_LOCK_STATE_ENABLED == mLocApi->getEngineLockState() &&
+        if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
             LOCATION_ERROR_SUCCESS != err) {
             eraseBatchingSession(client, sessionId);
         }
@@ -593,7 +595,7 @@ BatchingAdapter::stopBatching(LocationAPI* client, uint32_t sessionId, bool rest
                 new LocApiResponse(*getContext(),
                 [this, client, sessionId, flpOptions, restartNeeded, batchOptions, eraseSession]
                 (LocationError err) {
-            if (ENGINE_LOCK_STATE_ENABLED == mLocApi->getEngineLockState() &&
+            if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
                 LOCATION_ERROR_SUCCESS != err) {
                 if (eraseSession)
                     saveBatchingSession(client, sessionId, batchOptions);
@@ -1160,10 +1162,12 @@ BatchingAdapter::updateSystemPowerState(PowerStateType systemPowerState)
 
             case POWER_STATE_SUSPEND:
             case POWER_STATE_SHUTDOWN:
+            case POWER_STATE_DEEP_SLEEP_ENTRY:
                 suspendBatchingSessions();
                 LOC_LOGd("Suspending all Batching session -- powerState: %d", systemPowerState);
                 break;
             case POWER_STATE_RESUME:
+            case POWER_STATE_DEEP_SLEEP_EXIT:
                 restartSessions();
                 LOC_LOGd("Re-starting all Batching session -- powerState: %d", systemPowerState);
                 break;

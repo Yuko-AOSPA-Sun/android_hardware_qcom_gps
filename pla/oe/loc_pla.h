@@ -29,7 +29,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -72,6 +72,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <inttypes.h>
 #include <sys/time.h>
 #include <time.h>
+#if !defined(OPENWRT_BUILD) && !defined(OFF_TARGET)
+#include <glib.h>
+#endif
 
 inline int64_t sysTimeMillis(int clock)
 {
@@ -111,11 +114,10 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 #define MAX_COMMAND_STR_LEN (255)
-#define BOOT_KPI_FILE "/sys/kernel/debug/bootkpi/kpi_values"
+#define BOOT_KPI_FILE "/sys/kernel/boot_kpi/kpi_values"
 
 // OpenWrt Musl C library supports strlcpy/strlcat
 #if !defined(OPENWRT_BUILD) && !defined(OFF_TARGET)
-#include <glib.h>
 #define strlcat g_strlcat
 #define strlcpy g_strlcpy
 #elif defined(OFF_TARGET)

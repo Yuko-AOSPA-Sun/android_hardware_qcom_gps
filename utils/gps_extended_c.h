@@ -27,7 +27,7 @@
  */
 
 /*
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -70,11 +70,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <loc_gps.h>
 #include <LocationAPI.h>
 
-struct timespec32_t {
-  uint32_t  tv_sec;   /* seconds */
-  uint32_t  tv_nsec;  /* and nanoseconds */
-};
+/** SV Polynomial Coefficient Max Size */
+#define GNSS_SV_POLY_XYZ_COEFF_SIZE_MAX  18
+/** SV Polynomial Clock bias Coefficient max size  */
+#define GNSS_SV_POLY_CLKBIAS_COEFF_SIZE_MAX  6
+/** SV Poly Order Max size*/
+#define GNSS_SV_POLY_ORDER_SIZE_MAX  5
+/** Value of SV Poly Order Size above which higher order fields will be
+populated */
+#define GNSS_SV_POLY_ORDER_SIZE_DEFAULT  3
 
+/** Y2038- Compliant */
+struct timespec64_t {
+    uint64_t  tv_sec;    /* seconds */
+    uint64_t  tv_nsec;  /* and nanoseconds */
+};
 
 /**
  * @file
@@ -141,6 +151,11 @@ typedef uint32_t LocPosTechMask;
 #define LOC_POS_TECH_MASK_PDR ((LocPosTechMask)0x00001000)
 #define LOC_POS_TECH_MASK_PROPAGATED ((LocPosTechMask)0x00002000)
 
+#define QESDK_FEATURE_ID_EDGNSS        2641
+#define QESDK_FEATURE_ID_RTK           2642
+#define QESDK_FEATURE_ID_GTP           2643
+#define QESDK_FEATURE_ID_PRECISE_GTP   2644
+#define QESDK_FEATURE_ID_RL            2645
 
 enum loc_registration_mask_status {
     LOC_REGISTRATION_MASK_ENABLED,
@@ -190,7 +205,9 @@ typedef enum {
     /**< Support the feature to report engine debug data */
     LOC_SUPPORTED_FEATURE_ENGINE_DEBUG_DATA,
     /**< Support the feature to report feature update in QMI_LOC_EVENT_REPORT_IND */
-    LOC_SUPPORTED_FEATURE_DYNAMIC_FEATURE_STATUS
+    LOC_SUPPORTED_FEATURE_DYNAMIC_FEATURE_STATUS,
+    /**<  Support the feature to report Supported GNSS Bands */
+    LOC_SUPPORTED_FEATURE_GNSS_BANDS_SUPPORTED
 } loc_supported_feature_enum;
 
 typedef struct {
@@ -572,7 +589,8 @@ typedef enum {
 }LocInEmergency;
 
 typedef struct {
-    struct timespec32_t apTimeStamp;
+    /** Y2038-Compliant */
+    struct timespec64_t apTimeStamp;
     /*boottime received from pps-ktimer*/
     float apTimeStampUncertaintyMs;
     /* timestamp uncertainty in milli seconds */
@@ -609,6 +627,7 @@ typedef struct {
     uint64_t qzss_l5_sv_used_ids_mask;      // QZSS L5
     uint64_t sbas_l1_sv_used_ids_mask;      // SBAS L1
     uint64_t bds_b2aq_sv_used_ids_mask;     // BDS B2AQ
+    uint64_t navic_l5_sv_used_ids_mask;     // NAVIC L5
 } GnssSvMbUsedInPosition;
 
 /* Body Frame parameters */
@@ -774,210 +793,6 @@ typedef struct {
     float carrierPhasAmbiguity;
 } GpsMeasUsageInfo;
 
-/** Represents gps location extended. */
-typedef struct {
-    /** set to sizeof(GpsLocationExtended) */
-    uint32_t          size;
-    /** Contains GpsLocationExtendedFlags bits. */
-    uint64_t        flags;
-    /** Contains the Altitude wrt mean sea level */
-    float           altitudeMeanSeaLevel;
-    /** Contains Position Dilusion of Precision. */
-    float           pdop;
-    /** Contains Horizontal Dilusion of Precision. */
-    float           hdop;
-    /** Contains Vertical Dilusion of Precision. */
-    float           vdop;
-    /** Contains Magnetic Deviation. */
-    float           magneticDeviation;
-    /** vertical uncertainty in meters
-     *  confidence level is at 68% */
-    float           vert_unc;
-    /** horizontal speed uncertainty in m/s
-     *  confidence level is at 68% */
-    float           speed_unc;
-    /** heading uncertainty in degrees (0 to 359.999)
-     *  confidence level is at 68% */
-    float           bearing_unc;
-    /** horizontal reliability. */
-    LocReliability  horizontal_reliability;
-    /** vertical reliability. */
-    LocReliability  vertical_reliability;
-    /**  Horizontal Elliptical Uncertainty (Semi-Major Axis)
-     *   Confidence level is at 39% */
-    float           horUncEllipseSemiMajor;
-    /**  Horizontal Elliptical Uncertainty (Semi-Minor Axis)
-     *   Confidence level is at 39% */
-    float           horUncEllipseSemiMinor;
-    /**  Elliptical Horizontal Uncertainty Azimuth */
-    float           horUncEllipseOrientAzimuth;
-
-    Gnss_ApTimeStampStructType               timeStamp;
-    /** Gnss sv used in position data */
-    GnssSvUsedInPosition gnss_sv_used_ids;
-    /** Gnss sv used in position data for multiband */
-    GnssSvMbUsedInPosition gnss_mb_sv_used_ids;
-    /** Nav solution mask to indicate sbas corrections */
-    LocNavSolutionMask  navSolutionMask;
-    /** Position technology used in computing this fix */
-    LocPosTechMask tech_mask;
-    /** SV Info source used in computing this fix */
-    LocSvInfoSource sv_source;
-    /** Body Frame Dynamics: 4wayAcceleration and pitch set with validity */
-    GnssLocationPositionDynamics bodyFrameData;
-    /** GPS Time */
-    GPSTimeStruct gpsTime;
-    GnssSystemTime gnssSystemTime;
-    /** Dilution of precision associated with this position*/
-    LocExtDOP extDOP;
-    /** North standard deviation.
-        Unit: Meters */
-    float northStdDeviation;
-    /** East standard deviation.
-        Unit: Meters */
-    float eastStdDeviation;
-    /** North Velocity.
-        Unit: Meters/sec */
-    float northVelocity;
-    /** East Velocity.
-        Unit: Meters/sec */
-    float eastVelocity;
-    /** Up Velocity.
-        Unit: Meters/sec */
-    float upVelocity;
-    /** North Velocity standard deviation.
-     *  Unit: Meters/sec.
-     *  Confidence level is at 68% */
-    float northVelocityStdDeviation;
-    /** East Velocity standard deviation.
-     *  Unit: Meters/sec
-     *  Confidence level is at 68%   */
-    float eastVelocityStdDeviation;
-    /** Up Velocity standard deviation
-     *  Unit: Meters/sec
-     *  Confidence level is at 68% */
-    float upVelocityStdDeviation;
-    /** Estimated clock bias. Unit: Nano seconds */
-    float clockbiasMeter;
-    /** Estimated clock bias std deviation. Unit: Nano seconds */
-    float clockBiasStdDeviationMeter;
-    /** Estimated clock drift. Unit: Meters/sec */
-    float clockDrift;
-    /** Estimated clock drift std deviation. Unit: Meters/sec */
-    float clockDriftStdDeviation;
-    /** Number of valid reference stations. Range:[0-4] */
-    uint8_t numValidRefStations;
-    /** Reference station(s) number */
-    uint16_t referenceStation[4];
-    /** Number of measurements received for use in fix.
-        Shall be used as maximum index in-to svUsageInfo[].
-        Set to 0, if svUsageInfo reporting is not supported.
-        Range: 0-EP_GNSS_MAX_MEAS */
-    uint8_t numOfMeasReceived;
-    /** Measurement Usage Information */
-    GpsMeasUsageInfo measUsageInfo[GNSS_SV_MAX];
-    /** Leap Seconds */
-    uint8_t leapSeconds;
-    /** Time uncertainty in milliseconds,
-     *  SPE engine: confidence level is 99%
-     *  all other engines: confidence level is not specified */
-    float timeUncMs;
-    /** Heading Rate is in NED frame.
-        Range: 0 to 359.999. 946
-        Unit: Degrees per Seconds */
-    float headingRateDeg;
-    /** Sensor calibration confidence percent. Range: 0 - 100 */
-    uint8_t calibrationConfidence;
-    DrCalibrationStatusMask calibrationStatus;
-    /** location engine type. When the fix. when the type is set to
-        LOC_ENGINE_SRC_FUSED, the fix is the propagated/aggregated
-        reports from all engines running on the system (e.g.:
-        DR/SPE/PPE). To check which location engine contributes to
-        the fused output, check for locOutputEngMask. */
-    LocOutputEngineType locOutputEngType;
-    /** when loc output eng type is set to fused, this field
-        indicates the set of engines contribute to the fix. */
-    PositioningEngineMask locOutputEngMask;
-
-    /**  DGNSS Correction Source for position report: RTCM, 3GPP
-     *   etc. */
-    LocDgnssCorrectionSourceType dgnssCorrectionSourceType;
-
-    /**  If DGNSS is used, the SourceID is a 32bit number identifying
-     *   the DGNSS source ID */
-    uint32_t dgnssCorrectionSourceID;
-
-    /** If DGNSS is used, which constellation was DGNSS used for to
-     *  produce the pos report. */
-    GnssConstellationTypeMask dgnssConstellationUsage;
-
-    /** If DGNSS is used, DGNSS Reference station ID used for
-     *  position report */
-    uint16_t dgnssRefStationId;
-
-    /**  If DGNSS is used, DGNSS data age in milli-seconds  */
-    uint32_t dgnssDataAgeMsec;
-
-    /** When robust location is enabled, this field
-     * will how well the various input data considered for
-     * navigation solution conform to expectations.
-     * Range: 0 (least conforming) to 1 (most conforming) */
-    float conformityIndex;
-    GnssLocationPositionDynamicsExt bodyFrameDataExt;
-    /** VRR-based latitude/longitude/altitude */
-    LLAInfo llaVRPBased;
-    /** VRR-based east, north, and up velocity */
-    float enuVelocityVRPBased[3];
-    DrSolutionStatusMask drSolutionStatusMask;
-    /** When this field is valid, it will indicates whether altitude
-     *  is assumed or calculated.
-     *  false: Altitude is calculated.
-     *  true:  Altitude is assumed; there may not be enough
-     *         satellites to determine the precise altitude. */
-    bool altitudeAssumed;
-
-    /** Integrity risk used for protection level parameters.
-     *  Unit of 2.5e-10. Valid range is [1 to (4e9-1)].
-     *  Other values means integrity risk is disabled and
-     *  GnssLocation::protectAlongTrack,
-     *  GnssLocation::protectCrossTrack and
-     *  GnssLocation::protectVertical will not be available.
-     */
-    uint32_t integrityRiskUsed;
-    /** Along-track protection level at specified integrity risk, in
-     *  unit of meter.
-     */
-    float    protectAlongTrack;
-   /** Cross-track protection level at specified integrity risk, in
-     *  unit of meter.
-     */
-    float    protectCrossTrack;
-    /** Vertical component protection level at specified integrity
-     *  risk, in unit of meter.
-     */
-    float    protectVertical;
-    /** System Tick at GPS Time */
-    uint64_t systemTick;
-    /** Uncertainty for System Tick at GPS Time in milliseconds   */
-    float systemTickUnc;
-
-    // number of dgnss station id that is valid in dgnssStationId array
-    uint32_t  numOfDgnssStationId;
-    // List of DGNSS station IDs providing corrections.
-    //   Range:
-    //   - SBAS --  120 to 158 and 183 to 191.
-    //   - Monitoring station -- 1000-2023 (Station ID biased by 1000).
-    //   - Other values reserved.
-    uint16_t dgnssStationId[DGNSS_STATION_ID_MAX];
-} GpsLocationExtended;
-
-// struct that contains complete position info from engine
-typedef struct {
-    UlpLocation location;
-    GpsLocationExtended locationExtended;
-    enum loc_sess_status sessionStatus;
-} EngineLocationInfo;
-
 // Nmea sentence types mask
 typedef uint32_t NmeaSentenceTypesMask;
 #define LOC_NMEA_MASK_GGA_V02   ((NmeaSentenceTypesMask)0x00000001) /**<  Enable GGA type  */
@@ -1111,6 +926,7 @@ enum loc_api_adapter_event_index {
     LOC_API_ADAPTER_ENGINE_LOCK_STATE_DATA_REPORT,     // Engine lock state data report
     LOC_API_ADAPTER_FEATURE_STATUS_UPDATE,             // Dynamic feature status update
     LOC_API_ADAPTER_REQUEST_ASSISTANCE_TIME,           // NTP time download request
+    LOC_API_ADAPTER_GNSS_BANDS_SUPPORTED,              // GNSS bands supported
     LOC_API_ADAPTER_EVENT_MAX
 };
 
@@ -1159,6 +975,8 @@ enum loc_api_adapter_event_index {
 #define LOC_API_ADAPTER_BIT_FEATURE_STATUS_UPDATE            (1ULL<<LOC_API_ADAPTER_FEATURE_STATUS_UPDATE)
 #define LOC_API_ADAPTER_BIT_ASSISTANCE_TIME_REQUEST \
         (1ULL<<LOC_API_ADAPTER_REQUEST_ASSISTANCE_TIME)
+#define LOC_API_ADAPTER_BIT_GNSS_BANDS_SUPPORTED \
+        (1ULL<<LOC_API_ADAPTER_GNSS_BANDS_SUPPORTED)
 
 typedef uint64_t LOC_API_ADAPTER_EVENT_MASK_T;
 
@@ -1256,6 +1074,11 @@ enum ulp_gnss_sv_measurement_valid_flags{
 #define ULP_GNSS_SV_POLY_BIT_IODC                   (0x1000000000)
 #define ULP_GNSS_SV_POLY_BIT_TOE                    (0x2000000000)
 #define ULP_GNSS_SV_POLY_BIT_EPHEMERIS_SOURCE       (0x4000000000)
+/* Validity fields for higher order poly info */
+#define ULP_GNSS_SV_POLY_BIT_POLY_ORDER             (0x8000000000)
+#define ULP_GNSS_SV_POLY_BIT_POLYCOEFF_XYZ          (0x10000000000)
+#define ULP_GNSS_SV_POLY_BIT_POLYCOEFF_CLKBIAS      (0x20000000000)
+#define ULP_GNSS_SV_POLY_BIT_POLY_DURATION          (0x40000000000)
 
 typedef enum
 {
@@ -1452,6 +1275,19 @@ typedef struct {
   /**<  Pseudo Range rate correction in meters per second. */
 } Gnss_LocDgnssSVMeasurement;
 
+typedef struct {
+  uint8_t prMlInferValid;
+  /**<   Indicates whether the ML Inference Pseudorange correction in meters
+     field contains valid information. \n
+     - 0x01 (TRUE)  -- Valid \n
+     - 0x00 (FALSE) -- Invalid
+  */
+
+  float prMlInfer;
+  /**<   ML Inference, per SV measurement PR correction data in meters.
+  */
+} Gnss_MlInferSVMeasurementStruct;
+
 typedef struct
 {
     uint32_t                          size;
@@ -1587,6 +1423,9 @@ typedef struct
 
     /** < DGNSS Measurements Report for SVs */
     Gnss_LocDgnssSVMeasurement   dgnssSvMeas;
+
+    /** <  ML Inference, per SV measurement PR correction data */
+    Gnss_MlInferSVMeasurementStruct mlInferSvMeasurement;
 } Gnss_SVMeasurementStructType;
 
 
@@ -1806,6 +1645,39 @@ typedef struct {
     - GNSS_LOC_EPHEMERIS_SOURCE_NETWORK_INJECTED_V02 (3) --  Network-injected ephemeris
     - GNSS_LOC_EPHEMERIS_SOURCE_EFS_V02 (4) --  Source is EFS
     */
+    /**<   Polynomial Order.
+         Maximum Poly Order size -- GNSS_SV_POLY_ORDER_SIZE_MAX
+    */
+    uint8_t polyOrder;
+    /*  Valid Polynomial Duration */
+    /**<   Valid Duration
+         - Units -- Seconds
+    */
+    uint16_t validDuration;
+
+    /**<   Zero, First, Second,... Nth terms of the Polynomial coefficient for X, Y, and
+           Z coordinates
+           (C0X, C1X, ..., CNX, C0Y, C1Y,..., CNY, C0Z, C1Z, ..., CNZ).
+           Units:
+           - 0th term -- Meters
+           - 1st term -- Meters per second^1
+           - 2nd term -- Meters per second^2
+           - Nth term -- Meters per second^N
+
+          Note: N -- Polynomial Order Size as specified by polyOrder
+    */
+    double polyCoeffXYZ[GNSS_SV_POLY_XYZ_COEFF_SIZE_MAX];
+
+    /**<    Polynomial coefficients for satellite clock bias correction (C0T, C1T, C2T, CNT).
+            Units:
+            - 0th term -- Milliseconds
+            - 1st term -- Milliseconds per second^1
+            - 2nd term -- Milliseconds per second^2
+            - Nth term -- Milliseconds per second^N
+
+          Note: N -- Polynomial Order Size as specified by polyOrder
+    */
+    double polyClockBias[GNSS_SV_POLY_CLKBIAS_COEFF_SIZE_MAX];
 } GnssSvPolynomial;
 
 typedef enum {
@@ -2179,6 +2051,35 @@ typedef struct {
        - 1 : Unhealthy */
 } GalileoEphemeris;
 
+/* NAVIC Navigation Model Info */
+typedef struct {
+
+    GnssEphCommon commonEphemerisData;
+    /**<   Common ephemeris data.   */
+    /** Week number since the NavIC system time start epoch (August 22, 1999) */
+    uint32_t weekNum;
+    /** Issue of Data, Clock
+        Mandatory Field */
+    uint32_t iodec;
+    /** Health status of navigation data on L5 SPS signal.
+        0=OK, 1=bad */
+    uint8_t l5Health;
+    /** Health status of navigation data on S SPS signal.
+        0=OK, 1=bad */
+    uint8_t sHealth;
+    /** Inclination angle at reference time
+        Unit: radian
+        Mandatory Field */
+    double inclinationAngleRad;
+    /** User Range Accuracy Index(4bit)
+        Mandatory Field */
+    uint8_t urai;
+    /** Time of Group delay
+        Unit: second
+        Mandatory Field */
+    double  tgd;
+} NavicEphemeris;
+
 /** GPS Navigation model for each SV */
 typedef struct {
     uint16_t numOfEphemeris;
@@ -2208,7 +2109,11 @@ typedef struct {
     uint16_t numOfEphemeris;
     GpsEphemeris qzssEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
 } QzssEphemerisResponse;
-
+/** NAVIC Navigation model for each SV */
+typedef struct {
+    uint16_t numOfEphemeris;
+    NavicEphemeris navicEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
+} NavicEphemerisResponse;
 
 typedef struct {
     /** Indicates GNSS Constellation Type
@@ -2230,6 +2135,8 @@ typedef struct {
        GalileoEphemerisResponse galileoEphemeris;
        /** QZSS Ephemeris */
        QzssEphemerisResponse qzssEphemeris;
+       /** NAVIC Ephemeris */
+       NavicEphemerisResponse navicEphemeris;
     } ephInfo;
 } GnssSvEphemerisReport;
 
@@ -2374,7 +2281,8 @@ typedef enum {
     LOC_ON_PRECISE_TRACKING_START = 1 << 2,
     LOC_ON_TRACKING_START = 1 << 3,
     LOC_ON_EMERGENCY = 1 << 4,
-    LOC_ON_NTRIP_START =  1 << 5
+    LOC_ON_NTRIP_START =  1 << 5,
+    LOC_ON_NLP_SESSION_START = 1 << 6,
 } LocLaunchTriggerEvents;
 
 /* Process subscribed for dynamic launch
@@ -2386,6 +2294,13 @@ can runtime disable itself with this exit code*/
 #define QCSR_SS5_ENABLED                1
 #define PDS_API_ENABLED                 2
 #define QTI_MDM_GNSS_ENABLED            3
+
+typedef enum {
+    LOC_FEATURE_STATUS_UNKNOWN = 0,
+    LOC_FEATURE_STATUS_NONE = 1,
+    LOC_FEATURE_STATUS_OK = 2,
+    LOC_FEATURE_STATUS_EXPIRED = 3
+} LocFeatureStatus;
 
 #ifdef __cplusplus
 }

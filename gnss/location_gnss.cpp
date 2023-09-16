@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -111,7 +111,9 @@ static void enableNfwLocationAccess(std::vector<std::string>& enabledNfws);
 static void nfwInit(const NfwCbInfo& cbInfo);
 static void getPowerStateChanges(std::function<void(bool)> powerStateCb);
 
-static void odcpiInit(const odcpiRequestCallback& callback, OdcpiPrioritytype priority);
+static void odcpiInit(const odcpiRequestCallback& callback, OdcpiPrioritytype priority,
+        OdcpiCallbackTypeMask typeMask);
+static void deRegisterOdcpi(OdcpiPrioritytype priority, OdcpiCallbackTypeMask typeMask);
 static void odcpiInject(const Location& location);
 
 static void blockCPI(double latitude, double longitude, float accuracy,
@@ -142,7 +144,8 @@ static void measCorrClose();
 static uint32_t getAntennaInfo(AntennaInfoCallback* antennaInfoCallback);
 static uint32_t configEngineRunState(PositioningEngineMask engType, LocEngineRunState engState);
 static uint32_t configOutputNmeaTypes(GnssNmeaTypesMask enabledNmeaTypes,
-                                      GnssGeodeticDatumType nmeaDatumType);
+                                      GnssGeodeticDatumType nmeaDatumType,
+                                      LocReqEngineTypeMask locReqEngTypeMask);
 static void powerIndicationInit(const powerIndicationCb powerIndicationCallback);
 static void powerIndicationRequest();
 static void setAddressRequestCb(const std::function<void(const Location&)> addressRequestCb);
@@ -150,6 +153,8 @@ static void injectLocationAndAddr(const Location& location, const GnssCivicAddre
 static uint32_t setOptInStatus(bool userConsent);
 static uint32_t configEngineIntegrityRisk(PositioningEngineMask engType, uint32_t integrityRisk);
 static uint32_t configXtraParams(bool enable, const XtraConfigParams& configParams);
+static uint32_t configMerkleTree(const char * merkleTreeConfigBuffer, int bufferLength);
+static uint32_t configOsnmaEnablement(bool enable);
 static uint32_t getXtraStatus();
 static uint32_t registerXtraStatusUpdate(bool registerUpdate);
 static void configPrecisePositioning(uint32_t featureId, bool enable, std::string appHash);
@@ -184,6 +189,7 @@ static const GnssInterface gGnssInterface = {
     getDebugReport,
     updateConnectionStatus,
     odcpiInit,
+    deRegisterOdcpi,
     odcpiInject,
     blockCPI,
     setEsStatusCallback,
@@ -223,6 +229,8 @@ static const GnssInterface gGnssInterface = {
     getXtraStatus,
     registerXtraStatusUpdate,
     configPrecisePositioning,
+    configMerkleTree,
+    configOsnmaEnablement,
 };
 
 #ifndef DEBUG_X86
@@ -451,10 +459,17 @@ static void updateConnectionStatus(bool connected, int8_t type,
     }
 }
 
-static void odcpiInit(const odcpiRequestCallback& callback, OdcpiPrioritytype priority)
+static void odcpiInit(const odcpiRequestCallback& callback, OdcpiPrioritytype priority,
+        OdcpiCallbackTypeMask typeMask)
 {
     if (NULL != gGnssAdapter) {
-        gGnssAdapter->initOdcpiCommand(callback, priority);
+        gGnssAdapter->initOdcpiCommand(callback, priority, typeMask);
+    }
+}
+
+static void deRegisterOdcpi(OdcpiPrioritytype priority, OdcpiCallbackTypeMask typeMask) {
+    if (NULL != gGnssAdapter) {
+        gGnssAdapter->deRegisterOdcpiCommand(priority, typeMask);
     }
 }
 
@@ -666,10 +681,12 @@ static uint32_t configEngineRunState(PositioningEngineMask engType, LocEngineRun
 }
 
 static uint32_t configOutputNmeaTypes (GnssNmeaTypesMask enabledNmeaTypes,
-                                       GnssGeodeticDatumType nmeaDatumType) {
+                                       GnssGeodeticDatumType nmeaDatumType,
+                                       LocReqEngineTypeMask locReqEngTypeMask) {
     if (NULL != gGnssAdapter) {
         return gGnssAdapter->configOutputNmeaTypesCommand(enabledNmeaTypes,
-                                                          nmeaDatumType);
+                                                          nmeaDatumType,
+                                                          locReqEngTypeMask);
     } else {
         return 0;
     }
@@ -711,6 +728,9 @@ static uint32_t setOptInStatus(bool userConsent) {
 
         uint32_t sessionId = gGnssAdapter->generateSessionId();
         gGnssAdapter->getSystemStatus()->eventOptInStatus(userConsent);
+#ifdef USE_GLIB
+        gGnssAdapter->getSystemStatus()->eventRegionStatus(true);
+#endif
         gGnssAdapter->sendMsg(new RespMsg(sessionId));
 
         return sessionId;
@@ -755,5 +775,29 @@ static uint32_t registerXtraStatusUpdate(bool registerUpdate) {
 static void configPrecisePositioning(uint32_t featureId, bool enable, std::string appHash) {
     if (NULL != gGnssAdapter) {
         gGnssAdapter->configPrecisePositioningCommand(featureId, enable, appHash);
+    }
+}
+
+static uint32_t configMerkleTree(const char * merkleTreeConfigBuffer, int bufferLength) {
+    if (NULL != gGnssAdapter) {
+#ifdef USE_GLIB
+        return gGnssAdapter->configMerkleTreeCommand(merkleTreeConfigBuffer, bufferLength);
+#else
+        return 1;
+#endif
+    } else {
+        return 0;
+    }
+}
+
+static uint32_t configOsnmaEnablement(bool enable) {
+    if (NULL != gGnssAdapter) {
+#ifdef USE_GLIB
+        return gGnssAdapter->configOsnmaEnablementCommand(enable);
+#else
+        return 1;
+#endif
+    } else {
+        return 0;
     }
 }

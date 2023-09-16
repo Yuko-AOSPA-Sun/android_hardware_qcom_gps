@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -190,46 +190,38 @@ class SystemStatusRfAndParams : public SystemStatusItemBase
 {
 public:
     int32_t  mPgaGain;
-    uint32_t mGpsBpAmpI;
-    uint32_t mGpsBpAmpQ;
-    uint32_t mAdcI;
-    uint32_t mAdcQ;
+    int32_t mGpsBpAmpI;
+    int32_t mGpsBpAmpQ;
+    int32_t mAdcI;
+    int32_t mAdcQ;
     uint32_t mJammerGps;
     uint32_t mJammerGlo;
     uint32_t mJammerBds;
     uint32_t mJammerGal;
-    uint32_t   mAgcGps;
-    uint32_t   mAgcGlo;
-    uint32_t   mAgcBds;
-    uint32_t   mAgcGal;
-    uint32_t mGloBpAmpI;
-    uint32_t mGloBpAmpQ;
-    uint32_t mBdsBpAmpI;
-    uint32_t mBdsBpAmpQ;
-    uint32_t mGalBpAmpI;
-    uint32_t mGalBpAmpQ;
+    int32_t mGloBpAmpI;
+    int32_t mGloBpAmpQ;
+    int32_t mBdsBpAmpI;
+    int32_t mBdsBpAmpQ;
+    int32_t mGalBpAmpI;
+    int32_t mGalBpAmpQ;
     uint32_t mJammedSignalsMask;
-    std::vector<GnssJammerData> mJammerData;
+    std::vector<int32_t> mJammerInd;
     inline SystemStatusRfAndParams() :
-        mPgaGain(0),
-        mGpsBpAmpI(0),
-        mGpsBpAmpQ(0),
-        mAdcI(0),
-        mAdcQ(0),
+        mPgaGain(INT32_MIN),
+        mGpsBpAmpI(INT32_MIN),
+        mGpsBpAmpQ(INT32_MIN),
+        mAdcI(INT32_MIN),
+        mAdcQ(INT32_MIN),
         mJammerGps(0),
         mJammerGlo(0),
         mJammerBds(0),
         mJammerGal(0),
-        mAgcGps(0),
-        mAgcGlo(0),
-        mAgcBds(0),
-        mAgcGal(0),
-        mGloBpAmpI(0),
-        mGloBpAmpQ(0),
-        mBdsBpAmpI(0),
-        mBdsBpAmpQ(0),
-        mGalBpAmpI(0),
-        mGalBpAmpQ(0),
+        mGloBpAmpI(INT32_MIN),
+        mGloBpAmpQ(INT32_MIN),
+        mBdsBpAmpI(INT32_MIN),
+        mBdsBpAmpQ(INT32_MIN),
+        mGalBpAmpI(INT32_MIN),
+        mGalBpAmpQ(INT32_MIN),
         mJammedSignalsMask(0) {}
     inline SystemStatusRfAndParams(const SystemStatusPQWM1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
@@ -781,7 +773,7 @@ public:
         return mDataItem.mValue == ((const SystemStatusMccMnc&)peer).mDataItem.mValue;
     }
     inline void dump(void) override {
-        LOC_LOGD("TacMccMnc value=%s", mDataItem.mValue.c_str());
+        LOC_LOGD("TacMccMncCountry value=%s", mDataItem.mValue.c_str());
     }
 };
 
@@ -844,6 +836,39 @@ public:
         LOC_LOGd("Ntrip started: %d", mDataItem.mNtripStarted);
     }
 };
+
+class SystemStatusLocFeatureStatus : public SystemStatusItemBase {
+public:
+    LocFeatureStatusDataItem mDataItem;
+    inline SystemStatusLocFeatureStatus(std::unordered_set<int> fids) : mDataItem(fids) {}
+    inline SystemStatusLocFeatureStatus(const LocFeatureStatusDataItem& itemBase):
+            mDataItem(itemBase) {}
+    inline bool equals(const SystemStatusItemBase& peer) override {
+        return mDataItem.mFids ==
+            ((const SystemStatusLocFeatureStatus&)peer).mDataItem.mFids;
+    }
+    inline void dump(void) override {
+        string str;
+        mDataItem.stringify(str);
+        LOC_LOGd("Location feature qwes status: %s", str.c_str());
+    }
+};
+
+class SystemStatusNlpSessionStarted : public SystemStatusItemBase {
+public:
+    NlpSessionStartedDataItem mDataItem;
+    inline SystemStatusNlpSessionStarted(bool value = false): mDataItem(value) {}
+    inline SystemStatusNlpSessionStarted(const NlpSessionStartedDataItem& itemBase):
+        mDataItem(itemBase) {}
+    inline bool equals(const SystemStatusItemBase& peer) override {
+        return mDataItem.mNlpStarted ==
+            ((const SystemStatusNlpSessionStarted&)peer).mDataItem.mNlpStarted;
+    }
+    inline void dump(void) override {
+        LOC_LOGd("NLP Session started: %d", mDataItem.mNlpStarted);
+    }
+};
+
 /******************************************************************************
  SystemStatusReports
 ******************************************************************************/
@@ -896,6 +921,8 @@ public:
     std::vector<SystemStatusPreciseLocationEnabled>  mPreciseLocationEnabled;
     std::vector<SystemStatusTrackingStarted>  mTrackingStarted;
     std::vector<SystemStatusNtripStarted>  mNtripStarted;
+    std::vector<SystemStatusLocFeatureStatus>  mLocFeatureStatus;
+    std::vector<SystemStatusNlpSessionStarted>  mNlpSessionStarted;
 };
 
 /******************************************************************************
@@ -950,6 +977,9 @@ public:
     bool eventSetTracking(bool tracking, bool updateSysStatusTrkState);
     bool eventNtripStarted(bool ntripStarted);
     bool eventPreciseLocation(bool preciseLocation);
+    bool eventLocFeatureStatus(std::unordered_set<int> fids);
+    bool eventNlpSessionStatus(bool nlpStarted);
+    bool eventGpsEnabled(bool gpsEnabled);
 };
 
 } // namespace loc_core
