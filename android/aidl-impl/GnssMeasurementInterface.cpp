@@ -679,7 +679,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
                  i + 1,
                  data.measurements[i].flags,
                  data.measurements[i].svid,
-                 data.measurements[i].signalType.constellation,
+                 (uint32_t)data.measurements[i].signalType.constellation,
                  data.measurements[i].signalType.carrierFrequencyHz,
                  data.measurements[i].signalType.codeType.c_str(),
                  data.measurements[i].timeOffsetNs,
@@ -696,7 +696,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
                  data.measurements[i].carrierCycles,
                  data.measurements[i].carrierPhase,
                  data.measurements[i].carrierPhaseUncertainty,
-                 data.measurements[i].multipathIndicator,
+                 (uint32_t)data.measurements[i].multipathIndicator,
                  data.measurements[i].snrDb,
                  data.measurements[i].agcLevelDb,
                  data.measurements[i].fullInterSignalBiasNs,
@@ -741,7 +741,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
                  data.measurements[i].satellitePvt.issueOfDataClock,
                  data.measurements[i].satellitePvt.timeOfEphemerisSeconds,
                  data.measurements[i].satellitePvt.issueOfDataEphemeris,
-                 data.measurements[i].satellitePvt.ephemerisSource
+                 (int)data.measurements[i].satellitePvt.ephemerisSource
             );
     }
     LOC_LOGa(" Clocks Info "
@@ -768,7 +768,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
              data.clock.driftNsps,
              data.clock.driftUncertaintyNsps,
              data.clock.hwClockDiscontinuityCount,
-             data.clock.referenceSignalTypeForIsb.constellation,
+             (uint32_t)data.clock.referenceSignalTypeForIsb.constellation,
              data.clock.referenceSignalTypeForIsb.carrierFrequencyHz,
              data.clock.referenceSignalTypeForIsb.codeType.c_str());
     LOC_LOGa(" ElapsedRealtime "
@@ -785,7 +785,7 @@ void GnssMeasurementInterface::printGnssData(GnssData& data) {
                  " gnssAgcs.carrierFrequencyHz: %" PRIi64 "",
                  i,
                  data.gnssAgcs[i].agcLevelDb,
-                 data.gnssAgcs[i].constellation,
+                 (uint32_t)data.gnssAgcs[i].constellation,
                  data.gnssAgcs[i].carrierFrequencyHz);
     }
 }
