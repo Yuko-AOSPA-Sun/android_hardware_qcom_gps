@@ -7990,6 +7990,37 @@ uint32_t GnssAdapter::configOutputNmeaTypesCommand(GnssNmeaTypesMask enabledNmea
     return sessionId;
 }
 
+uint32_t GnssAdapter::gnssInjectMmfDataCommand(const GnssMapMatchedData& data) {
+
+    // generated session id will be none-zero
+    uint32_t sessionId = generateSessionId();
+    LOC_LOGd("session id %u", sessionId);
+
+    struct MsgInjectMmfData : public LocMsg {
+        GnssAdapter&       mAdapter;
+        uint32_t           mSessionId;
+        const GnssMapMatchedData& mMmfData;
+
+        inline MsgInjectMmfData(GnssAdapter& adapter,
+                                 uint32_t sessionId,
+                                 const GnssMapMatchedData& mmfData) :
+            LocMsg(),
+            mAdapter(adapter),
+            mSessionId(sessionId),
+            mMmfData(mmfData) {}
+        inline virtual void proc() const {
+            LocationError err = LOCATION_ERROR_NOT_SUPPORTED;
+            if (true == mAdapter.mEngHubProxy->gnssInjectMmfData(mMmfData)) {
+                err =  LOCATION_ERROR_SUCCESS;
+            }
+            mAdapter.reportResponse(err, mSessionId);
+        }
+    };
+
+    sendMsg(new MsgInjectMmfData(*this, sessionId, data));
+    return sessionId;
+
+}
 void GnssAdapter::powerIndicationInitCommand(const powerIndicationCb powerIndicationCallback) {
     LOC_LOGi("GnssAdapter::powerIndicationInitCommand");
 

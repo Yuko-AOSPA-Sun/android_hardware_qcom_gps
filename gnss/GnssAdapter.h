@@ -518,7 +518,7 @@ public:
     void configLeverArm(uint32_t sessionId, const LeverArmConfigInfo& configInfo);
     void configRobustLocation(uint32_t sessionId, bool enable, bool enableForE911);
     void configMinGpsWeek(uint32_t sessionId, uint16_t minGpsWeek);
-
+    void injectMmfData(uint32_t sessionId, const GnssMapMatchedData& mapData);
     /* ==== NI ============================================================================= */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
     void gnssNiResponseCommand(LocationAPI* client, uint32_t id, GnssNiResponse response);
@@ -621,7 +621,7 @@ public:
             const std::string& appHash);
     uint32_t configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufferLength);
     uint32_t configOsnmaEnablementCommand(bool enable);
-
+    uint32_t gnssInjectMmfDataCommand(const GnssMapMatchedData& data);
     /* ========= ODCPI ===================================================================== */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
     void initOdcpiCommand(const odcpiRequestCallback& callback,
