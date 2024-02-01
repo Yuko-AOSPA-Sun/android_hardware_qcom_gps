@@ -81,17 +81,11 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
     IDataItemCore *mydi = nullptr;
 
     switch (dataItem->getId()) {
-    case AIRPLANEMODE_DATA_ITEM_ID:
-        mydi = new AirplaneModeDataItem(*((AirplaneModeDataItem*)dataItem));
-        break;
     case ENH_DATA_ITEM_ID:
         mydi = new ENHDataItem(*((ENHDataItem*)dataItem));
         break;
     case GPSSTATE_DATA_ITEM_ID:
         mydi = new GPSStateDataItem(*((GPSStateDataItem*)dataItem));
-        break;
-    case NLPSTATUS_DATA_ITEM_ID:
-        mydi = new NLPStatusDataItem(*((NLPStatusDataItem*)dataItem));
         break;
     case WIFIHARDWARESTATE_DATA_ITEM_ID:
         mydi = new WifiHardwareStateDataItem(*((WifiHardwareStateDataItem*)dataItem));
@@ -117,12 +111,6 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
     case IN_EMERGENCY_CALL_DATA_ITEM_ID:
         mydi = new InEmergencyCallDataItem(*((InEmergencyCallDataItem*)dataItem));
         break;
-    case ASSISTED_GPS_DATA_ITEM_ID:
-        mydi = new AssistedGpsDataItem(*((AssistedGpsDataItem*)dataItem));
-        break;
-    case SCREEN_STATE_DATA_ITEM_ID:
-        mydi = new ScreenStateDataItem(*((ScreenStateDataItem*)dataItem));
-        break;
     case POWER_CONNECTED_STATE_DATA_ITEM_ID:
         mydi = new PowerConnectStateDataItem(*((PowerConnectStateDataItem*)dataItem));
         break;
@@ -134,9 +122,6 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
         break;
     case WIFI_SUPPLICANT_STATUS_DATA_ITEM_ID:
         mydi = new WifiSupplicantStatusDataItem(*((WifiSupplicantStatusDataItem*)dataItem));
-        break;
-    case SHUTDOWN_STATE_DATA_ITEM_ID:
-        mydi = new ShutdownStateDataItem(*((ShutdownStateDataItem*)dataItem));
         break;
     case TAC_DATA_ITEM_ID:
         mydi = new TacDataItem(*((TacDataItem*)dataItem));

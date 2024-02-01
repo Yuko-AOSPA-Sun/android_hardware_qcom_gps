@@ -161,20 +161,6 @@ typedef struct NetworkInfoType {
 } NetworkInfoType;
 
 
-class AirplaneModeDataItem: public IDataItemCore  {
-public:
-    AirplaneModeDataItem(IDataItemCore* di):
-            AirplaneModeDataItem(((AirplaneModeDataItem*)di)->mMode) {}
-    AirplaneModeDataItem(bool mode = false):
-        mMode(mode) {mId = AIRPLANEMODE_DATA_ITEM_ID;}
-    virtual ~AirplaneModeDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mMode;
-
-};
-
 class ENHDataItem: public IDataItemCore {
 public:
     enum Fields { FIELD_CONSENT, FIELD_REGION, FIELD_MAX };
@@ -230,17 +216,6 @@ public:
     bool mEnabled;
 };
 
-class NLPStatusDataItem: public IDataItemCore {
-public:
-    NLPStatusDataItem(bool enabled = false) :
-        mEnabled(enabled) {mId = NLPSTATUS_DATA_ITEM_ID;}
-    virtual ~NLPStatusDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mEnabled;
-};
-
 class WifiHardwareStateDataItem: public IDataItemCore {
 public:
     WifiHardwareStateDataItem(bool enabled = false) :
@@ -250,17 +225,6 @@ public:
     virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
 // Data members
     bool mEnabled;
-};
-
-class ScreenStateDataItem: public IDataItemCore {
-public:
-    ScreenStateDataItem(bool state = false) :
-        mState(state) {mId = SCREEN_STATE_DATA_ITEM_ID;}
-    virtual ~ScreenStateDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mState;
 };
 
 class PowerConnectStateDataItem: public IDataItemCore {
@@ -306,28 +270,6 @@ public:
     int64_t mCurrTimeMillis;
     int32_t mRawOffsetTZ;
     int32_t mDstOffsetTZ;
-};
-
-class ShutdownStateDataItem: public IDataItemCore {
-public:
-    ShutdownStateDataItem(bool state = false) :
-        mState (state) {mId = SHUTDOWN_STATE_DATA_ITEM_ID;}
-    virtual ~ShutdownStateDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mState;
-};
-
-class AssistedGpsDataItem: public IDataItemCore {
-public:
-    AssistedGpsDataItem(bool enabled = false) :
-        mEnabled(enabled) {mId = ASSISTED_GPS_DATA_ITEM_ID;}
-    virtual ~AssistedGpsDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mEnabled;
 };
 
 class NetworkInfoDataItem: public IDataItemCore {
