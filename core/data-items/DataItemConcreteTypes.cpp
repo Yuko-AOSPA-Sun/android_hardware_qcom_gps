@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -147,6 +147,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NTRIP_STARTED_FIELD_NAME "NTRIP_STARTED"
 #define NLP_STARTED_FIELD_NAME "NLP_SESSION_STARTED"
 #define LOC_FEATURE_STATUS_FIELD_NAME "LOC_FEATURE_STATUS"
+
+#define QESDK_WWAN_FEATURE_STATUS_CARD "QESDK_WWAN_FEATURE_STATUS_CARD"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_SESSION_ACTIVE "SESSION_ACTIVE"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_QESDK_FEATURE_ID "QESDK_FEATURE_ID"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_PID "PID"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_UID "UID"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_ISOEMAPP "ISOEMAPP"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASFINEPERMISSION "APPHASFINEPERMISSION"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASBACKGROUNDPERMISSION "APPHASBACKGROUNDPERMISSION"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASH "APPHASH"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPPACKAGENAME "APPPACKAGENAME"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPCOOKIE "APPCOOKIE"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPQWESLICENSEID "APPQWESLICENSEID"
 
 namespace loc_core
 {
@@ -964,6 +977,110 @@ int32_t NlpSessionStartedDataItem::copyFrom(IDataItemCore* src) {
         COPIER_ERROR_CHECK_AND_DOWN_CAST(
                 NlpSessionStartedDataItem, NETWORK_POSITIONING_STARTED_DATA_ITEM_ID);
         s->mNlpStarted = d->mNlpStarted;
+        result = 0;
+    } while (0);
+    EXIT_LOG("%d", result);
+    return result;
+}
+
+void QesdkWwanFeatureStatusDataItem::stringify(string& valueStr) {
+    int32_t result = 0;
+    ENTRY_LOG();
+    do {
+        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(
+            QesdkWwanFeatureStatusDataItem, QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID);
+
+        valueStr.clear ();
+
+        valueStr = QESDK_WWAN_FEATURE_STATUS_CARD;
+        valueStr += "::";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_SESSION_ACTIVE;
+        valueStr += ": ";
+        valueStr += (d->mIsSessionActive) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_QESDK_FEATURE_ID;
+        valueStr += ": ";
+        char fid[12];
+        snprintf(fid, 12, "%d", d->mQesdkFeatureId);
+        valueStr += string(fid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_PID;
+        valueStr += ": ";
+        char pid[12];
+        snprintf(pid, 12, "%d", d->mPid);
+        valueStr += string(pid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_UID;
+        valueStr += ": ";
+        char uid[12];
+        snprintf(uid, 12, "%d", d->mUid);
+        valueStr += string(uid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_ISOEMAPP;
+        valueStr += ": ";
+        valueStr += (d->mIsOemApp) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASFINEPERMISSION;
+        valueStr += ": ";
+        valueStr += (d->mAppHasFinePermission) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASBACKGROUNDPERMISSION;
+        valueStr += ": ";
+        valueStr += (d->mAppHasBackgroundPermission) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_ISOEMAPP;
+        valueStr += ": ";
+        valueStr += (d->mIsOemApp) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASH;
+        valueStr += ": ";
+        valueStr += d->mAppHash;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPPACKAGENAME;
+        valueStr += ": ";
+        valueStr += d->mAppPackageName;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPCOOKIE;
+        valueStr += ": ";
+        valueStr += d->mAppCookie;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPQWESLICENSEID;
+        valueStr += ": ";
+        valueStr += d->mAppQwesLicenseId;
+
+    } while (0);
+    EXIT_LOG_WITH_ERROR("%d", result);
+}
+
+int32_t QesdkWwanFeatureStatusDataItem::copyFrom(IDataItemCore* src) {
+    int32_t result = -1;
+    ENTRY_LOG();
+    do {
+        COPIER_ERROR_CHECK_AND_DOWN_CAST(
+                QesdkWwanFeatureStatusDataItem, QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID);
+        s->mIsSessionActive = d->mIsSessionActive;
+        s->mQesdkFeatureId = d->mQesdkFeatureId;
+        s->mPid = d->mPid;
+        s->mUid = d->mUid;
+        s->mIsOemApp = d->mIsOemApp;
+        s->mAppHasFinePermission = d->mAppHasFinePermission;
+        s->mAppHasBackgroundPermission = d->mAppHasBackgroundPermission;
+        s->mAppHash = d->mAppHash;
+        s->mAppPackageName = d->mAppPackageName;
+        s->mAppCookie = d->mAppCookie;
+        s->mAppQwesLicenseId = d->mAppQwesLicenseId;
         result = 0;
     } while (0);
     EXIT_LOG("%d", result);

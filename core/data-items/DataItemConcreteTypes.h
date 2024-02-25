@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -689,6 +689,45 @@ class NlpSessionStartedDataItem: public IDataItemCore {
         virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
         // Data members
         bool mNlpStarted;
+};
+
+class QesdkWwanFeatureStatusDataItem: public IDataItemCore {
+    public:
+        QesdkWwanFeatureStatusDataItem(
+                bool isSessionActive = false,
+                uint32_t qesdkFeatureId = 0,
+                int32_t pid = 0,
+                int32_t uid = 0,
+                bool isOemApp = false,
+                bool appHasFinePermission = false,
+                bool appHasBackgroundPermission = false,
+                string appHash = "",
+                string appPackageName = "",
+                string appCookie = "",
+                string appQwesLicenseId = ""):
+            mIsSessionActive(isSessionActive), mQesdkFeatureId(qesdkFeatureId),
+            mPid(pid), mUid(uid), mIsOemApp(isOemApp), mAppHasFinePermission(appHasFinePermission),
+            mAppHasBackgroundPermission(appHasBackgroundPermission), mAppHash(appHash),
+            mAppPackageName(appPackageName), mAppCookie(appCookie),
+            mAppQwesLicenseId(appQwesLicenseId) { mId = QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID; }
+
+        virtual ~QesdkWwanFeatureStatusDataItem() {}
+
+        virtual void stringify(string& /*valueStr*/) override;
+        virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
+
+        // Data members
+        bool mIsSessionActive;
+        uint32_t mQesdkFeatureId;
+        uint32_t mPid;
+        uint32_t mUid;
+        bool mIsOemApp;
+        bool mAppHasFinePermission;
+        bool mAppHasBackgroundPermission;
+        string mAppHash;
+        string mAppPackageName;
+        string mAppCookie;
+        string mAppQwesLicenseId;
 };
 
 } // namespace loc_core

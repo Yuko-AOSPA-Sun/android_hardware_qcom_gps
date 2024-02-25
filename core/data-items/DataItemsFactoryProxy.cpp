@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -161,6 +161,9 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
         break;
     case NETWORK_POSITIONING_STARTED_DATA_ITEM_ID:
         mydi = new NlpSessionStartedDataItem(*((NlpSessionStartedDataItem*)dataItem));
+        break;
+    case QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID:
+        mydi = new QesdkWwanFeatureStatusDataItem(*((QesdkWwanFeatureStatusDataItem*)dataItem));
         break;
     case INVALID_DATA_ITEM_ID:
     case MAX_DATA_ITEM_ID:
