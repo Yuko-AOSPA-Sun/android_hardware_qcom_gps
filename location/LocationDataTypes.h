@@ -90,6 +90,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**  Maximum number of satellites in an ephemeris report.  */
 #define GNSS_EPHEMERIS_LIST_MAX_SIZE_V02 32
 
+/** GNSS engine rate if requested rate and current running
+ *  rate are not mulitples of each other */
+#define MIN_GNSS_TRACKING_INTERVAL (100)
+
 enum LocationError {
     LOCATION_ERROR_SUCCESS = 0,
     LOCATION_ERROR_GENERAL_FAILURE,
@@ -272,6 +276,7 @@ typedef uint64_t GnssLocationInfoFlagMask;
 #define LDT_GNSS_LOCATION_INFO_BASE_LINE_LENGTH_BIT  (1ULL<<38) // base station & receiver distance
 #define LDT_GNSS_LOCATION_INFO_AGE_OF_CORRECTION_BIT (1ULL<<39) // Age of Corrections
 #define LDT_GNSS_LOCATION_INFO_LEAP_SECONDS_UNC_BIT (1ULL<<40) // Leap Second Uncertainity
+#define LDT_GNSS_LOCATION_INFO_REPORT_INTERVAL_BIT  (1ULL<<41) // Valid reporting interval
 
 enum GeofenceBreachType {
     GEOFENCE_BREACH_ENTER = 0,
@@ -1259,7 +1264,17 @@ struct TrackingOptions : LocationOptions {
         bool updated = false;
         if (other.minInterval < minInterval) {
             updated = true;
-            minInterval = other.minInterval;
+            if (minInterval % other.minInterval != 0) {
+                minInterval = MIN_GNSS_TRACKING_INTERVAL;
+            } else {
+                minInterval = other.minInterval;
+            }
+        } else if (other.minInterval > minInterval) {
+            // Will update option to true only if tbf's are not multiple of each other
+            if (other.minInterval % minInterval != 0) {
+                updated = true;
+                minInterval = MIN_GNSS_TRACKING_INTERVAL;
+            }
         }
         if (other.powerMode < powerMode) {
             updated = true;
@@ -1628,19 +1643,21 @@ struct GnssLocationInfoNotification {
     //   - Monitoring station -- 1000-2023 (Station ID biased by 1000).
     //   - Other values reserved.
     uint16_t dgnssStationId[DGNSS_STATION_ID_MAX];
-
     // Distance between the base station and the receiver
     // Unit - meters
     double baseLineLength;
-
     // Difference in time between the fix timestamp using the
     // correction and the time of the correction
     // Unit - milli-seconds
     uint64_t ageMsecOfCorrections;
-
     /** Uncertainty for the GNSS leap second.
      *  Units -- Seconds */
     uint8_t leapSecondsUnc;
+    /** Current reporting interval. Intervals at which GNSS engine is
+     *  delivering position reports. It is minimum of all clients
+     *  requesting position reports.
+     *  Unit - milli-seconds*/
+    uint32_t posReportingInterval;
 };
 
 // Indicate the API that is called to generate the location report

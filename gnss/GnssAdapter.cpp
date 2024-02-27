@@ -94,7 +94,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEG2RAD    (M_PI / 180.0)
 #define PROCESS_NAME_ENGINE_SERVICE "engine-service"
 #define PROCESS_NAME_SAP_MAP        "hmacdaemon"
-#define MIN_TRACKING_INTERVAL (100) // 100 msec
+#define MIN_TRACKING_INTERVAL (MIN_GNSS_TRACKING_INTERVAL) // 100 msec
 #define NHZ_ENABLED_MIN_TRACKING_INTERVAL (100) // 100 msec
 #define NHZ_NOT_ENABLED_MIN_TRACKING_INTERVAL (1000) // 1 sec
 #define BILLION_NSEC (1000000000ULL)
@@ -1038,6 +1038,10 @@ GnssAdapter::convertLocationInfo(GnssLocationInfoNotification& out,
     if (GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC & locationExtended.flags) {
         out.flags |= LDT_GNSS_LOCATION_INFO_LEAP_SECONDS_UNC_BIT;
         out.leapSecondsUnc = locationExtended.leapSecondsUnc;
+    }
+    if (GPS_LOCATION_EXTENDED_HAS_REPORT_INTERVAL & locationExtended.flags) {
+        out.flags |= LDT_GNSS_LOCATION_INFO_REPORT_INTERVAL_BIT;
+        out.posReportingInterval = locationExtended.posReportingInterval;
     }
 }
 

@@ -506,6 +506,8 @@ typedef uint64_t GpsLocationExtendedFlags;
 #define GPS_LOCATION_EXTENDED_HAS_RAW_RTK_CORR_AGE_TIMESTAMP     0x800000000000000
 /** GpsLocationExtended has valid leapSecondsUnc */
 #define GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC               0x1000000000000000
+/** GpsLocationExtended has valid current reporting interval */
+#define GPS_LOCATION_EXTENDED_HAS_REPORT_INTERVAL                0x2000000000000000
 
 typedef uint32_t LocNavSolutionMask;
 /* Bitmask to specify whether SBAS ionospheric correction is used  */
