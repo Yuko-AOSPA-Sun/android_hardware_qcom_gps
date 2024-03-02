@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -869,6 +869,26 @@ public:
     }
 };
 
+class SystemStatusQesdkWwanFeatureStatus : public SystemStatusItemBase {
+public:
+    QesdkWwanFeatureStatusDataItem mDataItem;
+    inline SystemStatusQesdkWwanFeatureStatus(uint32_t featureId, std::string appHash):
+            mDataItem(featureId, appHash) {}
+    inline SystemStatusQesdkWwanFeatureStatus(const QesdkWwanFeatureStatusDataItem& itemBase):
+            mDataItem(itemBase) {}
+    inline bool equals(const SystemStatusItemBase& peer) override {
+        return mDataItem.mQesdkFeatureId ==
+            ((const SystemStatusQesdkWwanFeatureStatus&)peer).mDataItem.mQesdkFeatureId &&
+                mDataItem.mAppHash ==
+            ((const SystemStatusQesdkWwanFeatureStatus&)peer).mDataItem.mAppHash;
+    }
+    inline void dump(void) override {
+        string str;
+        mDataItem.stringify(str);
+        LOC_LOGd("QESDK WWAN Feature Status: %s", str.c_str());
+    }
+};
+
 /******************************************************************************
  SystemStatusReports
 ******************************************************************************/
@@ -923,6 +943,7 @@ public:
     std::vector<SystemStatusNtripStarted>  mNtripStarted;
     std::vector<SystemStatusLocFeatureStatus>  mLocFeatureStatus;
     std::vector<SystemStatusNlpSessionStarted>  mNlpSessionStarted;
+    std::vector<SystemStatusQesdkWwanFeatureStatus> mQesdkWwanFeatureStatus;
 };
 
 /******************************************************************************
