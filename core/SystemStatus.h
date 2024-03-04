@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -441,17 +441,6 @@ public:
 /******************************************************************************
  SystemStatus report data structure - from DataItem observer
 ******************************************************************************/
-class SystemStatusAirplaneMode : public SystemStatusItemBase {
-public:
-    AirplaneModeDataItem mDataItem;
-    inline SystemStatusAirplaneMode(bool mode=false): mDataItem(mode) {}
-    inline SystemStatusAirplaneMode(const AirplaneModeDataItem& itemBase):
-            mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mMode == ((const SystemStatusAirplaneMode&)peer).mDataItem.mMode;
-    }
-};
-
 class SystemStatusENH : public SystemStatusItemBase {
 public:
     ENHDataItem mDataItem;
@@ -478,16 +467,6 @@ public:
     }
     inline void dump(void) override {
         LOC_LOGD("GpsState: state=%u", mDataItem.mEnabled);
-    }
-};
-
-class SystemStatusNLPStatus : public SystemStatusItemBase {
-public:
-    NLPStatusDataItem mDataItem;
-    inline SystemStatusNLPStatus(bool enabled=false): mDataItem(enabled) {}
-    inline SystemStatusNLPStatus(const NLPStatusDataItem& itemBase): mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mEnabled == ((const SystemStatusNLPStatus&)peer).mDataItem.mEnabled;
     }
 };
 
@@ -657,26 +636,6 @@ public:
     }
 };
 
-class SystemStatusAssistedGps : public SystemStatusItemBase {
-public:
-    AssistedGpsDataItem mDataItem;
-    inline SystemStatusAssistedGps(bool enabled=false): mDataItem(enabled) {}
-    inline SystemStatusAssistedGps(const AssistedGpsDataItem& itemBase): mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mEnabled == ((const SystemStatusAssistedGps&)peer).mDataItem.mEnabled;
-    }
-};
-
-class SystemStatusScreenState : public SystemStatusItemBase {
-public:
-    ScreenStateDataItem mDataItem;
-    inline SystemStatusScreenState(bool state=false): mDataItem(state) {}
-    inline SystemStatusScreenState(const ScreenStateDataItem& itemBase): mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mState == ((const SystemStatusScreenState&)peer).mDataItem.mState;
-    }
-};
-
 class SystemStatusPowerConnectState : public SystemStatusItemBase {
 public:
     PowerConnectStateDataItem mDataItem;
@@ -738,17 +697,6 @@ public:
                 mDataItem.mWifiApSsid ==
                 ((const SystemStatusWifiSupplicantStatus&)peer).mDataItem.mWifiApSsid;
         }
-};
-
-class SystemStatusShutdownState : public SystemStatusItemBase {
-public:
-    ShutdownStateDataItem mDataItem;
-    inline SystemStatusShutdownState(bool state=false): mDataItem(state) {}
-    inline SystemStatusShutdownState(const ShutdownStateDataItem& itemBase):
-            mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mState == ((const SystemStatusShutdownState&)peer).mDataItem.mState;
-    }
 };
 
 class SystemStatusTac : public SystemStatusItemBase {
@@ -897,10 +845,8 @@ public:
     std::vector<SystemStatusPositionFailure>  mPositionFailure;
 
     // from dataitems observer
-    std::vector<SystemStatusAirplaneMode>     mAirplaneMode;
     std::vector<SystemStatusENH>              mENH;
     std::vector<SystemStatusGpsState>         mGPSState;
-    std::vector<SystemStatusNLPStatus>        mNLPStatus;
     std::vector<SystemStatusWifiHardwareState> mWifiHardwareState;
     std::vector<SystemStatusNetworkInfo>      mNetworkInfo;
     std::vector<SystemStatusServiceInfo>      mRilServiceInfo;
@@ -909,13 +855,10 @@ public:
     std::vector<SystemStatusModel>            mModel;
     std::vector<SystemStatusManufacturer>     mManufacturer;
     std::vector<SystemStatusInEmergencyCall>  mInEmergencyCall;
-    std::vector<SystemStatusAssistedGps>      mAssistedGps;
-    std::vector<SystemStatusScreenState>      mScreenState;
     std::vector<SystemStatusPowerConnectState> mPowerConnectState;
     std::vector<SystemStatusTimeZoneChange>   mTimeZoneChange;
     std::vector<SystemStatusTimeChange>       mTimeChange;
     std::vector<SystemStatusWifiSupplicantStatus> mWifiSupplicantStatus;
-    std::vector<SystemStatusShutdownState>    mShutdownState;
     std::vector<SystemStatusTac>              mTac;
     std::vector<SystemStatusMccMnc>           mMccMnc;
     std::vector<SystemStatusPreciseLocationEnabled>  mPreciseLocationEnabled;
