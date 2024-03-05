@@ -636,22 +636,10 @@ class NlpSessionStartedDataItem: public IDataItemCore {
 class QesdkWwanFeatureStatusDataItem: public IDataItemCore {
     public:
         QesdkWwanFeatureStatusDataItem(
-                bool isSessionActive = false,
                 uint32_t qesdkFeatureId = 0,
-                int32_t pid = 0,
-                int32_t uid = 0,
-                bool isOemApp = false,
-                bool appHasFinePermission = false,
-                bool appHasBackgroundPermission = false,
-                string appHash = "",
-                string appPackageName = "",
-                string appCookie = "",
-                string appQwesLicenseId = ""):
-            mIsSessionActive(isSessionActive), mQesdkFeatureId(qesdkFeatureId),
-            mPid(pid), mUid(uid), mIsOemApp(isOemApp), mAppHasFinePermission(appHasFinePermission),
-            mAppHasBackgroundPermission(appHasBackgroundPermission), mAppHash(appHash),
-            mAppPackageName(appPackageName), mAppCookie(appCookie),
-            mAppQwesLicenseId(appQwesLicenseId) { mId = QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID; }
+                string appHash = ""):
+            mQesdkFeatureId(qesdkFeatureId),
+            mAppHash(appHash) { mId = QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID; }
 
         virtual ~QesdkWwanFeatureStatusDataItem() {}
 
@@ -659,11 +647,37 @@ class QesdkWwanFeatureStatusDataItem: public IDataItemCore {
         virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
 
         // Data members
-        bool mIsSessionActive;
+        uint32_t mQesdkFeatureId;
+        string mAppHash;
+};
+
+class QesdkWwanCsConsentSrcDataItem: public IDataItemCore {
+    public:
+        QesdkWwanCsConsentSrcDataItem(
+                uint32_t qesdkFeatureId = 0,
+                int32_t pid = 0,
+                int32_t uid = 0,
+                bool appHasFinePermission = false,
+                bool appHasBackgroundPermission = false,
+                string appHash = "",
+                string appPackageName = "",
+                string appCookie = "",
+                string appQwesLicenseId = ""):
+            mQesdkFeatureId(qesdkFeatureId),
+            mPid(pid), mUid(uid), mAppHasFinePermission(appHasFinePermission),
+            mAppHasBackgroundPermission(appHasBackgroundPermission), mAppHash(appHash),
+            mAppPackageName(appPackageName), mAppCookie(appCookie),
+            mAppQwesLicenseId(appQwesLicenseId) { mId = QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID; }
+
+        virtual ~QesdkWwanCsConsentSrcDataItem() {}
+
+        virtual void stringify(string& /*valueStr*/) override;
+        virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
+
+        // Data members
         uint32_t mQesdkFeatureId;
         uint32_t mPid;
         uint32_t mUid;
-        bool mIsOemApp;
         bool mAppHasFinePermission;
         bool mAppHasBackgroundPermission;
         string mAppHash;

@@ -1769,6 +1769,11 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
                     SystemStatusNlpSessionStarted(
                         *(static_cast<NlpSessionStartedDataItem*>(dataitem))));
             break;
+        case QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID:
+            ret = setIteminReport(mCache.mQesdkWwanFeatureStatus,
+                    SystemStatusQesdkWwanFeatureStatus(
+                        *(static_cast<QesdkWwanFeatureStatusDataItem*>(dataitem))));
+            break;
         default:
             break;
     }
