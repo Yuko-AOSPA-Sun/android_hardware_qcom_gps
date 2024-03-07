@@ -13,6 +13,7 @@ cc_library_shared {
         "liblog",
         "libloc_core",
         "libgps.utils",
+        "libxml2",
     ],
 
     srcs: [
@@ -21,6 +22,7 @@ cc_library_shared {
         "Agps.cpp",
         "XtraSystemStatusObserver.cpp",
         "NativeAgpsHandler.cpp",
+        "XmlFileParser.cpp",
     ],
 
     cflags: ["-fno-short-enums"] + GNSS_CFLAGS,

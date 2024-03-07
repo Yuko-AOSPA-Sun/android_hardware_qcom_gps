@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -780,11 +780,7 @@ static void configPrecisePositioning(uint32_t featureId, bool enable, const std:
 
 static uint32_t configMerkleTree(const char * merkleTreeConfigBuffer, int bufferLength) {
     if (NULL != gGnssAdapter) {
-#ifdef USE_GLIB
         return gGnssAdapter->configMerkleTreeCommand(merkleTreeConfigBuffer, bufferLength);
-#else
-        return 1;
-#endif
     } else {
         return 0;
     }
@@ -792,11 +788,7 @@ static uint32_t configMerkleTree(const char * merkleTreeConfigBuffer, int buffer
 
 static uint32_t configOsnmaEnablement(bool enable) {
     if (NULL != gGnssAdapter) {
-#ifdef USE_GLIB
         return gGnssAdapter->configOsnmaEnablementCommand(enable);
-#else
-        return 1;
-#endif
     } else {
         return 0;
     }
