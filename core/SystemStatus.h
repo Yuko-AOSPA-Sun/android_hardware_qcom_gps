@@ -837,6 +837,45 @@ public:
     }
 };
 
+class SystemStatusQesdkWwanCsConsentSrc : public SystemStatusItemBase {
+public:
+    QesdkWwanCsConsentSrcDataItem mDataItem;
+    inline SystemStatusQesdkWwanCsConsentSrc(
+            uint32_t qesdkFeatureId = 0,
+            int32_t pid = 0,
+            int32_t uid = 0,
+            bool appHasFinePermission = false,
+            bool appHasBackgroundPermission = false,
+            string appHash = "",
+            string appPackageName = "",
+            string appCookie = "",
+            string appQwesLicenseId = ""):
+        mDataItem(qesdkFeatureId, pid, uid, appHasFinePermission, appHasBackgroundPermission,
+                    appHash, appPackageName, appCookie, appQwesLicenseId) {}
+    inline SystemStatusQesdkWwanCsConsentSrc(const QesdkWwanCsConsentSrcDataItem& itemBase):
+            mDataItem(itemBase) {}
+    inline bool equals(const SystemStatusItemBase& peer) override {
+
+        const QesdkWwanCsConsentSrcDataItem& peerDataItem =
+            ((const SystemStatusQesdkWwanCsConsentSrc&)peer).mDataItem;
+
+        return mDataItem.mQesdkFeatureId == peerDataItem.mQesdkFeatureId &&
+               mDataItem.mPid == peerDataItem.mPid &&
+               mDataItem.mUid == peerDataItem.mUid &&
+               mDataItem.mAppHasFinePermission == peerDataItem.mAppHasFinePermission &&
+               mDataItem.mAppHasBackgroundPermission == peerDataItem.mAppHasBackgroundPermission &&
+               mDataItem.mAppHash == peerDataItem.mAppHash &&
+               mDataItem.mAppPackageName == peerDataItem.mAppPackageName &&
+               mDataItem.mAppCookie == peerDataItem.mAppCookie &&
+               mDataItem.mAppQwesLicenseId == peerDataItem.mAppQwesLicenseId;
+    }
+    inline void dump(void) override {
+        string str;
+        mDataItem.stringify(str);
+        LOC_LOGd("QESDK WWAN CS Consent Src: %s", str.c_str());
+    }
+};
+
 /******************************************************************************
  SystemStatusReports
 ******************************************************************************/
@@ -887,6 +926,7 @@ public:
     std::vector<SystemStatusLocFeatureStatus>  mLocFeatureStatus;
     std::vector<SystemStatusNlpSessionStarted>  mNlpSessionStarted;
     std::vector<SystemStatusQesdkWwanFeatureStatus> mQesdkWwanFeatureStatus;
+    std::vector<SystemStatusQesdkWwanCsConsentSrc> mQesdkWwanCsConsentSrc;
 };
 
 /******************************************************************************

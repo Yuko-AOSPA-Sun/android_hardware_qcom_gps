@@ -1774,6 +1774,11 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
                     SystemStatusQesdkWwanFeatureStatus(
                         *(static_cast<QesdkWwanFeatureStatusDataItem*>(dataitem))));
             break;
+        case QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID:
+            ret = setIteminReport(mCache.mQesdkWwanCsConsentSrc,
+                    SystemStatusQesdkWwanCsConsentSrc(
+                        *(static_cast<QesdkWwanCsConsentSrcDataItem*>(dataitem))));
+            break;
         default:
             break;
     }

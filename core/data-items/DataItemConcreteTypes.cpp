@@ -885,4 +885,91 @@ int32_t QesdkWwanFeatureStatusDataItem::copyFrom(IDataItemCore* src) {
     return result;
 }
 
+void QesdkWwanCsConsentSrcDataItem::stringify(string& valueStr) {
+    int32_t result = 0;
+    ENTRY_LOG();
+    do {
+        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(
+            QesdkWwanCsConsentSrcDataItem, QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID);
+
+        valueStr.clear ();
+
+        valueStr = QESDK_WWAN_CS_CONSENT_SRC_CARD;
+        valueStr += "::";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_QESDK_FEATURE_ID;
+        valueStr += ": ";
+        char fid[12];
+        snprintf(fid, 12, "%d", d->mQesdkFeatureId);
+        valueStr += string(fid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_PID;
+        valueStr += ": ";
+        char pid[12];
+        snprintf(pid, 12, "%d", d->mPid);
+        valueStr += string(pid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_UID;
+        valueStr += ": ";
+        char uid[12];
+        snprintf(uid, 12, "%d", d->mUid);
+        valueStr += string(uid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASFINEPERMISSION;
+        valueStr += ": ";
+        valueStr += (d->mAppHasFinePermission) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASBACKGROUNDPERMISSION;
+        valueStr += ": ";
+        valueStr += (d->mAppHasBackgroundPermission) ? ("true") : ("false");
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASH;
+        valueStr += ": ";
+        valueStr += d->mAppHash;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPPACKAGENAME;
+        valueStr += ": ";
+        valueStr += d->mAppPackageName;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPCOOKIE;
+        valueStr += ": ";
+        valueStr += d->mAppCookie;
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPQWESLICENSEID;
+        valueStr += ": ";
+        valueStr += d->mAppQwesLicenseId;
+
+    } while (0);
+    EXIT_LOG_WITH_ERROR("%d", result);
+}
+
+int32_t QesdkWwanCsConsentSrcDataItem::copyFrom(IDataItemCore* src) {
+    int32_t result = -1;
+    ENTRY_LOG();
+    do {
+        COPIER_ERROR_CHECK_AND_DOWN_CAST(
+                QesdkWwanCsConsentSrcDataItem, QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID);
+        s->mQesdkFeatureId = d->mQesdkFeatureId;
+        s->mPid = d->mPid;
+        s->mUid = d->mUid;
+        s->mAppHasFinePermission = d->mAppHasFinePermission;
+        s->mAppHasBackgroundPermission = d->mAppHasBackgroundPermission;
+        s->mAppHash = d->mAppHash;
+        s->mAppPackageName = d->mAppPackageName;
+        s->mAppCookie = d->mAppCookie;
+        s->mAppQwesLicenseId = d->mAppQwesLicenseId;
+        result = 0;
+    } while (0);
+    EXIT_LOG("%d", result);
+    return result;
+}
+
 } //namespace loc_core
