@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -104,17 +104,17 @@ typedef enum e_DataItemId {
     IN_EMERGENCY_CALL_DATA_ITEM_ID,
     OEM_GTP_UPLOAD_TRIGGER_READY_ITEM_ID,
 
-    // 25
+    // 25 - 29
     MAX_DATA_ITEM_ID,
-
-    // 26 -
     PRECISE_LOCATION_ENABLED_DATA_ITEM_ID,
     TRACKING_STARTED_DATA_ITEM_ID,
     NTRIP_STARTED_DATA_ITEM_ID,
-
-    // 29 -
     LOC_FEATURE_STATUS_DATA_ITEM_ID,
+
+    // 30 - 34
     NETWORK_POSITIONING_STARTED_DATA_ITEM_ID,
+    QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID,
+    QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID,
 
     MAX_DATA_ITEM_ID_1_1,
 } DataItemId;

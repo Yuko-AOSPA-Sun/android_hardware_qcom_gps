@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -68,21 +68,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <log_util.h>
 
 #define ENH_FIELD_ENABLED "IS_QUALCOMM_ENHANCED_PROVIDER_ENABLED"
-#define AIRPLANEMODE_FIELD_MODE "IS_AIRPLANE_MODE_ON"
-#define ENH_FIELD_ENABLED "IS_QUALCOMM_ENHANCED_PROVIDER_ENABLED"
 #define GPSSTATE_FIELD_ENABLED "IS_GPS_PROVIDER_ENABLED"
-#define NLPSTATUS_FIELD_ENABLED "IS_NETWORK_PROVIDER_ENABLED"
 #define WIFIHARDWARESTATE_FIELD_ENABLED "IS_WIFI_HARDWARE_ON"
-#define SCREENSTATE_FIELD_ENABLED "IS_SCREEN_ON"
 #define POWERCONNECTSTATE_FIELD_ENABLED "IS_POWER_CONNECTED"
 #define TIMEZONECHANGE_FIELD_ENABLED "IS_TIMEZONE_CHANGED"
 #define TIMECHANGE_FIELD_ENABLED "IS_TIME_CHANGED"
 #define TIMECHANGE_FIELD_CURRENT_TIME_MILLIS "CURR_TIME_MILLIS"
 #define TIMECHANGE_FIELD_RAW_OFFSET_TZ "RAW_OFFSET_TZ"
 #define TIMECHANGE_FIELD_DST_OFFSET_TZ "DST_OFFSET_TZ"
-
-#define SHUTDOWN_FIELD_ENABLED "IS_SHUTDOWN"
-#define ASSISTEDGPS_FIELD_ENABLED "IS_ASSISTED_GPS_ENABLED"
 
 #define NETWORKINFO_CARD "ACTIVE_NETWORK_INFO"
 #define NETWORKINFO_FIELD_TYPE "TYPE"
@@ -148,22 +141,24 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NLP_STARTED_FIELD_NAME "NLP_SESSION_STARTED"
 #define LOC_FEATURE_STATUS_FIELD_NAME "LOC_FEATURE_STATUS"
 
+#define QESDK_WWAN_FEATURE_STATUS_CARD "QESDK_WWAN_FEATURE_STATUS_CARD"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_QESDK_FEATURE_ID "WWAN_FEATURE_ID"
+#define QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASH "WWAN_FEATURE_APP_HASH"
+
+#define QESDK_WWAN_CS_CONSENT_SRC_CARD "QESDK_WWAN_CS_CONSENT_SRC_CARD"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_QESDK_FEATURE_ID "QESDK_FEATURE_ID"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_PID "PID"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_UID "UID"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASFINEPERMISSION "APPHASFINEPERMISSION"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASBACKGROUNDPERMISSION "APPHASBACKGROUNDPERMISSION"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPHASH "APPHASH"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPPACKAGENAME "APPPACKAGENAME"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPCOOKIE "APPCOOKIE"
+#define QESDK_WWAN_CS_CONSENT_SRC_FIELD_APPQWESLICENSEID "APPQWESLICENSEID"
+
 namespace loc_core
 {
 // stringify
-void AirplaneModeDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(AirplaneModeDataItem, AIRPLANEMODE_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr = AIRPLANEMODE_FIELD_MODE;
-        valueStr += ": ";
-        valueStr += (d->mMode) ? ("true") : ("false");
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
-
 void ENHDataItem::stringify(string& valueStr) {
     int32_t result = 0;
     ENTRY_LOG();
@@ -171,26 +166,12 @@ void ENHDataItem::stringify(string& valueStr) {
         STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(ENHDataItem, ENH_DATA_ITEM_ID);
         valueStr.clear ();
         valueStr = ENH_FIELD_ENABLED;
-        if (!d->isEnabled()) {
-            Fields field = FIELD_MAX;
-            switch (mFieldUpdate) {
-                case FIELD_CONSENT:
-                    valueStr += "_FIELD_CONSENT";
-                    field = FIELD_CONSENT;
-                    break;
-                case FIELD_REGION:
-                    valueStr += "_FIELD_REGION";
-                    field = FIELD_REGION;
-                    break;
-                default:
-                    break;
-            }
-            valueStr += ": ";
-            valueStr += (((1 << field) & d->mEnhFields) != 0) ? "true" : "false";
-        } else {
-            valueStr += ": ";
-            valueStr += "true";
-        }
+        valueStr += ": ";
+        valueStr += (d->isEnabled()) ? "true" : "false";
+        valueStr += " IS_QUALCOMM_ENHANCED_PROVIDER_ENABLED_CONSENT: ";
+        valueStr += (((1 << FIELD_CONSENT) & d->mEnhFields) != 0) ? "true" : "false";
+        valueStr += " IS_QUALCOMM_ENHANCED_PROVIDER_ENABLED_REGION: ";
+        valueStr += (((1 << FIELD_REGION) & d->mEnhFields) != 0) ? "true" : "false";
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
 }
@@ -206,18 +187,6 @@ void GPSStateDataItem::stringify(string& valueStr) {
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
 }
-void NLPStatusDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(NLPStatusDataItem, NLPSTATUS_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr = NLPSTATUS_FIELD_ENABLED;
-        valueStr += ": ";
-        valueStr += (d->mEnabled) ? ("true") : ("false");
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
 void WifiHardwareStateDataItem::stringify(string& valueStr) {
     int32_t result = 0;
     ENTRY_LOG();
@@ -228,18 +197,6 @@ void WifiHardwareStateDataItem::stringify(string& valueStr) {
         valueStr = WIFIHARDWARESTATE_FIELD_ENABLED;
         valueStr += ": ";
         valueStr += (d->mEnabled) ? ("true") : ("false");
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
-void ScreenStateDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(ScreenStateDataItem, SCREEN_STATE_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr = SCREENSTATE_FIELD_ENABLED;
-        valueStr += ": ";
-        valueStr += (d->mState) ? ("true") : ("false");
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
 }
@@ -297,30 +254,6 @@ void TimeChangeDataItem::stringify(string& valueStr) {
         char time [30];
         snprintf (time, 30, "%" PRIi64, d->mCurrTimeMillis);
         valueStr += string (time);
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
-void ShutdownStateDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(ShutdownStateDataItem, SHUTDOWN_STATE_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr = SHUTDOWN_FIELD_ENABLED;
-        valueStr += ": ";
-        valueStr += (d->mState) ? ("true") : ("false");
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
-void AssistedGpsDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(AssistedGpsDataItem, ASSISTED_GPS_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr = ASSISTEDGPS_FIELD_ENABLED;
-        valueStr += ": ";
-        valueStr += (d->mEnabled) ? ("true") : ("false");
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
 }
@@ -498,18 +431,6 @@ void MccmncDataItem::stringify(string& valueStr) {
 }
 
 // copy
-int32_t AirplaneModeDataItem::copyFrom(IDataItemCore* src) {
-   int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(AirplaneModeDataItem,  AIRPLANEMODE_DATA_ITEM_ID);
-        if (s->mMode == d->mMode) { result = 0; break; }
-         s->mMode = d->mMode;
-         result = 0;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-    return result;
-}
 void InEmergencyCallDataItem::stringify(string& valueStr) {
     int32_t result = 0;
     ENTRY_LOG();
@@ -556,18 +477,6 @@ int32_t GPSStateDataItem::copyFrom(IDataItemCore* src) {
     EXIT_LOG_WITH_ERROR("%d", result);
     return result;
  }
-int32_t NLPStatusDataItem::copyFrom(IDataItemCore* src) {
-    int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(NLPStatusDataItem, NLPSTATUS_DATA_ITEM_ID);
-        if (s->mEnabled == d->mEnabled) { result = 0; break; }
-         s->mEnabled = d->mEnabled;
-         result = 0;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-    return result;
-}
 int32_t WifiHardwareStateDataItem::copyFrom(IDataItemCore* src) {
     int32_t result = -1;
     ENTRY_LOG();
@@ -575,18 +484,6 @@ int32_t WifiHardwareStateDataItem::copyFrom(IDataItemCore* src) {
         COPIER_ERROR_CHECK_AND_DOWN_CAST(WifiHardwareStateDataItem, WIFIHARDWARESTATE_DATA_ITEM_ID);
         if (s->mEnabled == d->mEnabled) { result = 0; break; }
         s->mEnabled = d->mEnabled;
-        result = 0;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-    return result;
-}
-int32_t ScreenStateDataItem::copyFrom(IDataItemCore* src) {
-    int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(ScreenStateDataItem, SCREEN_STATE_DATA_ITEM_ID);
-        if (s->mState == d->mState) { result = 0; break; }
-        s->mState = d->mState;
         result = 0;
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
@@ -650,30 +547,6 @@ int32_t TimeChangeDataItem::copyFrom(IDataItemCore* src) {
         s->mCurrTimeMillis = d->mCurrTimeMillis;
         s->mRawOffsetTZ = d->mRawOffsetTZ;
         s->mDstOffsetTZ = d->mDstOffsetTZ;
-        result = 0;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-    return result;
-}
-int32_t ShutdownStateDataItem::copyFrom(IDataItemCore* src) {
-    int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(ShutdownStateDataItem, SHUTDOWN_STATE_DATA_ITEM_ID);
-        if (s->mState == d->mState) { result = 0; break; }
-        s->mState = d->mState;
-        result = 0;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-    return result;
-}
-int32_t AssistedGpsDataItem::copyFrom(IDataItemCore* src) {
-    int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(AssistedGpsDataItem, ASSISTED_GPS_DATA_ITEM_ID);
-        if (s->mEnabled == d->mEnabled) { result = 0; break; }
-        s->mEnabled = d->mEnabled;
         result = 0;
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
@@ -964,6 +837,48 @@ int32_t NlpSessionStartedDataItem::copyFrom(IDataItemCore* src) {
         COPIER_ERROR_CHECK_AND_DOWN_CAST(
                 NlpSessionStartedDataItem, NETWORK_POSITIONING_STARTED_DATA_ITEM_ID);
         s->mNlpStarted = d->mNlpStarted;
+        result = 0;
+    } while (0);
+    EXIT_LOG("%d", result);
+    return result;
+}
+
+void QesdkWwanFeatureStatusDataItem::stringify(string& valueStr) {
+    int32_t result = 0;
+    ENTRY_LOG();
+    do {
+        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(
+            QesdkWwanFeatureStatusDataItem, QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID);
+
+        valueStr.clear ();
+
+        valueStr = QESDK_WWAN_FEATURE_STATUS_CARD;
+        valueStr += "::";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_QESDK_FEATURE_ID;
+        valueStr += ": ";
+        char fid[12];
+        snprintf(fid, 12, "%d", d->mQesdkFeatureId);
+        valueStr += string(fid);
+        valueStr += ", ";
+
+        valueStr += QESDK_WWAN_FEATURE_STATUS_FIELD_APPHASH;
+        valueStr += ": ";
+        valueStr += d->mAppHash;
+        valueStr += ", ";
+
+    } while (0);
+    EXIT_LOG_WITH_ERROR("%d", result);
+}
+
+int32_t QesdkWwanFeatureStatusDataItem::copyFrom(IDataItemCore* src) {
+    int32_t result = -1;
+    ENTRY_LOG();
+    do {
+        COPIER_ERROR_CHECK_AND_DOWN_CAST(
+                QesdkWwanFeatureStatusDataItem, QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID);
+        s->mQesdkFeatureId = d->mQesdkFeatureId;
+        s->mAppHash = d->mAppHash;
         result = 0;
     } while (0);
     EXIT_LOG("%d", result);

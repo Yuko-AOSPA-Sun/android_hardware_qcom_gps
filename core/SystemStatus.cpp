@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -1477,10 +1477,8 @@ SystemStatus::SystemStatus(const MsgTask* msgTask) :
 
     mCache.mPositionFailure.clear();
 
-    mCache.mAirplaneMode.clear();
     mCache.mENH.clear();
     mCache.mGPSState.clear();
-    mCache.mNLPStatus.clear();
     mCache.mWifiHardwareState.clear();
     mCache.mNetworkInfo.clear();
     mCache.mRilServiceInfo.clear();
@@ -1488,13 +1486,10 @@ SystemStatus::SystemStatus(const MsgTask* msgTask) :
     mCache.mServiceStatus.clear();
     mCache.mModel.clear();
     mCache.mManufacturer.clear();
-    mCache.mAssistedGps.clear();
-    mCache.mScreenState.clear();
     mCache.mPowerConnectState.clear();
     mCache.mTimeZoneChange.clear();
     mCache.mTimeChange.clear();
     mCache.mWifiSupplicantStatus.clear();
-    mCache.mShutdownState.clear();
     mCache.mTac.clear();
     mCache.mMccMnc.clear();
 
@@ -1676,10 +1671,6 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
     pthread_mutex_lock(&mMutexSystemStatus);
     switch(dataitem->getId())
     {
-        case AIRPLANEMODE_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mAirplaneMode,
-                    SystemStatusAirplaneMode(*(static_cast<AirplaneModeDataItem*>(dataitem))));
-            break;
         case ENH_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mENH,
                     SystemStatusENH(*(static_cast<ENHDataItem*>(dataitem))));
@@ -1687,10 +1678,6 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
         case GPSSTATE_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mGPSState,
                     SystemStatusGpsState(*(static_cast<GPSStateDataItem*>(dataitem))));
-            break;
-        case NLPSTATUS_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mNLPStatus,
-                    SystemStatusNLPStatus(*(static_cast<NLPStatusDataItem*>(dataitem))));
             break;
         case WIFIHARDWARESTATE_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mWifiHardwareState, SystemStatusWifiHardwareState(
@@ -1733,14 +1720,6 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
                     SystemStatusInEmergencyCall(
                         *(static_cast<InEmergencyCallDataItem*>(dataitem))));
             break;
-        case ASSISTED_GPS_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mAssistedGps,
-                    SystemStatusAssistedGps(*(static_cast<AssistedGpsDataItem*>(dataitem))));
-            break;
-        case SCREEN_STATE_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mScreenState,
-                    SystemStatusScreenState(*(static_cast<ScreenStateDataItem*>(dataitem))));
-            break;
         case POWER_CONNECTED_STATE_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mPowerConnectState, SystemStatusPowerConnectState(
                         *(static_cast<PowerConnectStateDataItem*>(dataitem))));
@@ -1756,10 +1735,6 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
         case WIFI_SUPPLICANT_STATUS_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mWifiSupplicantStatus, SystemStatusWifiSupplicantStatus(
                         *(static_cast<WifiSupplicantStatusDataItem*>(dataitem))));
-            break;
-        case SHUTDOWN_STATE_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mShutdownState,
-                    SystemStatusShutdownState(*(static_cast<ShutdownStateDataItem*>(dataitem))));
             break;
         case TAC_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mTac,
@@ -1793,6 +1768,11 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
             ret = setIteminReport(mCache.mNlpSessionStarted,
                     SystemStatusNlpSessionStarted(
                         *(static_cast<NlpSessionStartedDataItem*>(dataitem))));
+            break;
+        case QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID:
+            ret = setIteminReport(mCache.mQesdkWwanFeatureStatus,
+                    SystemStatusQesdkWwanFeatureStatus(
+                        *(static_cast<QesdkWwanFeatureStatusDataItem*>(dataitem))));
             break;
         default:
             break;
@@ -1836,10 +1816,8 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
 
         getIteminReport(report.mPositionFailure, mCache.mPositionFailure);
 
-        getIteminReport(report.mAirplaneMode, mCache.mAirplaneMode);
         getIteminReport(report.mENH, mCache.mENH);
         getIteminReport(report.mGPSState, mCache.mGPSState);
-        getIteminReport(report.mNLPStatus, mCache.mNLPStatus);
         getIteminReport(report.mWifiHardwareState, mCache.mWifiHardwareState);
         getIteminReport(report.mNetworkInfo, mCache.mNetworkInfo);
         getIteminReport(report.mRilServiceInfo, mCache.mRilServiceInfo);
@@ -1847,13 +1825,10 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
         getIteminReport(report.mServiceStatus, mCache.mServiceStatus);
         getIteminReport(report.mModel, mCache.mModel);
         getIteminReport(report.mManufacturer, mCache.mManufacturer);
-        getIteminReport(report.mAssistedGps, mCache.mAssistedGps);
-        getIteminReport(report.mScreenState, mCache.mScreenState);
         getIteminReport(report.mPowerConnectState, mCache.mPowerConnectState);
         getIteminReport(report.mTimeZoneChange, mCache.mTimeZoneChange);
         getIteminReport(report.mTimeChange, mCache.mTimeChange);
         getIteminReport(report.mWifiSupplicantStatus, mCache.mWifiSupplicantStatus);
-        getIteminReport(report.mShutdownState, mCache.mShutdownState);
         getIteminReport(report.mTac, mCache.mTac);
         getIteminReport(report.mMccMnc, mCache.mMccMnc);
     }
@@ -1876,10 +1851,8 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
 
         report.mPositionFailure.clear();
 
-        report.mAirplaneMode.clear();
         report.mENH.clear();
         report.mGPSState.clear();
-        report.mNLPStatus.clear();
         report.mWifiHardwareState.clear();
         report.mNetworkInfo.clear();
         report.mRilServiceInfo.clear();
@@ -1887,13 +1860,10 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
         report.mServiceStatus.clear();
         report.mModel.clear();
         report.mManufacturer.clear();
-        report.mAssistedGps.clear();
-        report.mScreenState.clear();
         report.mPowerConnectState.clear();
         report.mTimeZoneChange.clear();
         report.mTimeChange.clear();
         report.mWifiSupplicantStatus.clear();
-        report.mShutdownState.clear();
         report.mTac.clear();
         report.mMccMnc.clear();
 

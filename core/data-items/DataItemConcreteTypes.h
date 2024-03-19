@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -161,20 +161,6 @@ typedef struct NetworkInfoType {
 } NetworkInfoType;
 
 
-class AirplaneModeDataItem: public IDataItemCore  {
-public:
-    AirplaneModeDataItem(IDataItemCore* di):
-            AirplaneModeDataItem(((AirplaneModeDataItem*)di)->mMode) {}
-    AirplaneModeDataItem(bool mode = false):
-        mMode(mode) {mId = AIRPLANEMODE_DATA_ITEM_ID;}
-    virtual ~AirplaneModeDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mMode;
-
-};
-
 class ENHDataItem: public IDataItemCore {
 public:
     enum Fields { FIELD_CONSENT, FIELD_REGION, FIELD_MAX };
@@ -230,17 +216,6 @@ public:
     bool mEnabled;
 };
 
-class NLPStatusDataItem: public IDataItemCore {
-public:
-    NLPStatusDataItem(bool enabled = false) :
-        mEnabled(enabled) {mId = NLPSTATUS_DATA_ITEM_ID;}
-    virtual ~NLPStatusDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mEnabled;
-};
-
 class WifiHardwareStateDataItem: public IDataItemCore {
 public:
     WifiHardwareStateDataItem(bool enabled = false) :
@@ -250,17 +225,6 @@ public:
     virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
 // Data members
     bool mEnabled;
-};
-
-class ScreenStateDataItem: public IDataItemCore {
-public:
-    ScreenStateDataItem(bool state = false) :
-        mState(state) {mId = SCREEN_STATE_DATA_ITEM_ID;}
-    virtual ~ScreenStateDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mState;
 };
 
 class PowerConnectStateDataItem: public IDataItemCore {
@@ -306,28 +270,6 @@ public:
     int64_t mCurrTimeMillis;
     int32_t mRawOffsetTZ;
     int32_t mDstOffsetTZ;
-};
-
-class ShutdownStateDataItem: public IDataItemCore {
-public:
-    ShutdownStateDataItem(bool state = false) :
-        mState (state) {mId = SHUTDOWN_STATE_DATA_ITEM_ID;}
-    virtual ~ShutdownStateDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mState;
-};
-
-class AssistedGpsDataItem: public IDataItemCore {
-public:
-    AssistedGpsDataItem(bool enabled = false) :
-        mEnabled(enabled) {mId = ASSISTED_GPS_DATA_ITEM_ID;}
-    virtual ~AssistedGpsDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    bool mEnabled;
 };
 
 class NetworkInfoDataItem: public IDataItemCore {
@@ -689,6 +631,59 @@ class NlpSessionStartedDataItem: public IDataItemCore {
         virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
         // Data members
         bool mNlpStarted;
+};
+
+class QesdkWwanFeatureStatusDataItem: public IDataItemCore {
+    public:
+        QesdkWwanFeatureStatusDataItem(
+                uint32_t qesdkFeatureId = 0,
+                string appHash = ""):
+            mQesdkFeatureId(qesdkFeatureId),
+            mAppHash(appHash) { mId = QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID; }
+
+        virtual ~QesdkWwanFeatureStatusDataItem() {}
+
+        virtual void stringify(string& /*valueStr*/) override;
+        virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
+
+        // Data members
+        uint32_t mQesdkFeatureId;
+        string mAppHash;
+};
+
+class QesdkWwanCsConsentSrcDataItem: public IDataItemCore {
+    public:
+        QesdkWwanCsConsentSrcDataItem(
+                uint32_t qesdkFeatureId = 0,
+                int32_t pid = 0,
+                int32_t uid = 0,
+                bool appHasFinePermission = false,
+                bool appHasBackgroundPermission = false,
+                string appHash = "",
+                string appPackageName = "",
+                string appCookie = "",
+                string appQwesLicenseId = ""):
+            mQesdkFeatureId(qesdkFeatureId),
+            mPid(pid), mUid(uid), mAppHasFinePermission(appHasFinePermission),
+            mAppHasBackgroundPermission(appHasBackgroundPermission), mAppHash(appHash),
+            mAppPackageName(appPackageName), mAppCookie(appCookie),
+            mAppQwesLicenseId(appQwesLicenseId) { mId = QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID; }
+
+        virtual ~QesdkWwanCsConsentSrcDataItem() {}
+
+        virtual void stringify(string& /*valueStr*/) override;
+        virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
+
+        // Data members
+        uint32_t mQesdkFeatureId;
+        uint32_t mPid;
+        uint32_t mUid;
+        bool mAppHasFinePermission;
+        bool mAppHasBackgroundPermission;
+        string mAppHash;
+        string mAppPackageName;
+        string mAppCookie;
+        string mAppQwesLicenseId;
 };
 
 } // namespace loc_core
