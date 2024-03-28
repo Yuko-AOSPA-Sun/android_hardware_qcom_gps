@@ -1159,6 +1159,7 @@ void GnssAdapter::readNfwLockConfig()
     char nfwR1PackageName[LOC_MAX_PARAM_STRING];
     char nfwR2PackageName[LOC_MAX_PARAM_STRING];
     char nfwR3PackageName[LOC_MAX_PARAM_STRING];
+    char nfwNtnPackageName[LOC_MAX_PARAM_STRING];
 
     const loc_param_s_type nfw_packages_table[] =
     {
@@ -1173,6 +1174,7 @@ void GnssAdapter::readNfwLockConfig()
         { "NFW_CLIENT_R1",      &nfwR1PackageName,      NULL, 's' },
         { "NFW_CLIENT_R2",      &nfwR2PackageName,      NULL, 's' },
         { "NFW_CLIENT_R3",      &nfwR3PackageName,      NULL, 's' },
+        { "NFW_CLIENT_NTN",     &nfwNtnPackageName,     NULL, 's' },
     };
     UTIL_READ_CONF(LOC_PATH_GPS_CONF_STR, nfw_packages_table);
 
@@ -1187,6 +1189,7 @@ void GnssAdapter::readNfwLockConfig()
     mNfws[nfwR3PackageName] |= GNSS_CONFIG_GPS_LOCK_NFW_R3;
     mNfws[nfwSuplPackageName] |= GNSS_CONFIG_GPS_LOCK_NFW_SUPL;
     mNfws[nfwCpPackageName] |= GNSS_CONFIG_GPS_LOCK_NFW_CP;
+    mNfws[nfwNtnPackageName] |= GNSS_CONFIG_GPS_LOCK_NFW_NTN;
 }
 
 void
