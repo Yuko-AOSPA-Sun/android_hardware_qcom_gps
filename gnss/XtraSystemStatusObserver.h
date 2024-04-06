@@ -119,7 +119,6 @@ public :
     bool updateLockStatus(GnssConfigGpsLock lock);
     bool updateConnections(uint64_t allConnections,
             loc_core::NetworkInfoType* networkHandleInfo, bool roaming);
-    bool updateTac(const string& tac);
     bool updateMccMnc(const string& mccmncCountry);
     bool updateXtraThrottle(const bool enabled);
     bool updatePowerState(const PowerStateType powerState);
