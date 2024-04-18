@@ -20,7 +20,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -112,8 +112,6 @@ private:
     static void convertGnssSvId(const GnssMeasurementsData& in, int& out);
     void convertGnssSignalType(const GnssMeasurementsData& in, GnssSignalType& out);
     static void convertGnssConstellationType(const GnssSvType& in, GnssConstellationType& out);
-    void convertGnssMeasurementsCodeType(const GnssMeasurementsCodeType& inCodeType,
-                                         const char* inOtherCodeTypeName, GnssSignalType& out);
     void convertGnssState(const GnssMeasurementsData& in, GnssMeasurement& out);
     void convertGnssAccumulatedDeltaRangeState(const GnssMeasurementsData& in,
                                                GnssMeasurement& out);
