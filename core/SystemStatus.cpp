@@ -479,7 +479,7 @@ SystemStatusPQWP3::SystemStatusPQWP3(const GnssEngineDebugDataInfo& info){
     mNavicXtraAge = info.navicXtraAge;
     mGpsXtraValid = info.gpsXtraMask;
     mGloXtraValid = info.gloXtraMask;
-    mBdsXtraValid = info.gloXtraMask;
+    mBdsXtraValid = info.bdsXtraMask;
     mGalXtraValid = info.galXtraMask;
     mQzssXtraValid = info.qzssXtraMask;
     mNavicXtraValid = info.navicXtraMask;
@@ -558,6 +558,8 @@ public:
     uint64_t  mBdsEpheValid;
     uint64_t  mGalEpheValid;
     uint8_t   mQzssEpheValid;
+    uint32_t  mNavicEpheValid;
+
     SystemStatusPQWP4() = default;
     SystemStatusPQWP4(const GnssEngineDebugDataInfo& info);
 };
@@ -568,6 +570,7 @@ SystemStatusPQWP4::SystemStatusPQWP4(const GnssEngineDebugDataInfo& info) {
     mBdsEpheValid = info.bdsEphMask;
     mGalEpheValid = info.galEphMask;
     mQzssEpheValid = info.qzssEphMask;
+    mNavicEpheValid = info.navicEphMask;
 }
 
 class SystemStatusPQWP4parser : public SystemStatusNmeaBase
@@ -788,7 +791,7 @@ public:
 };
 
 SystemStatusPQWP7::SystemStatusPQWP7(const GnssEngineDebugDataInfo& gnssEngineDebugDataInfo) {
-    memset(mNav, 0, SV_ALL_NUM_MIN * sizeof(SystemStatusNav));
+    memset(mNav, 0, SV_ALL_NUM * sizeof(SystemStatusNav));
     for (int i = 0; i < GNSS_MAX_SV_INFO_LIST_SIZE; i++) {
         GnssNavDataInfo navInfo  = gnssEngineDebugDataInfo.navData[i];
         int offset = 0;
@@ -1206,7 +1209,8 @@ SystemStatusEphemeris::SystemStatusEphemeris(const SystemStatusPQWP4& nmea) :
     mGloEpheValid(nmea.mGloEpheValid),
     mBdsEpheValid(nmea.mBdsEpheValid),
     mGalEpheValid(nmea.mGalEpheValid),
-    mQzssEpheValid(nmea.mQzssEpheValid)
+    mQzssEpheValid(nmea.mQzssEpheValid),
+    mNavicEpheValid(nmea.mNavicEpheValid)
 {
 }
 
@@ -1215,7 +1219,8 @@ bool SystemStatusEphemeris::equals(const SystemStatusItemBase& peer) {
         (mGloEpheValid != ((const SystemStatusEphemeris&)peer).mGloEpheValid) ||
         (mBdsEpheValid != ((const SystemStatusEphemeris&)peer).mBdsEpheValid) ||
         (mGalEpheValid != ((const SystemStatusEphemeris&)peer).mGalEpheValid) ||
-        (mQzssEpheValid != ((const SystemStatusEphemeris&)peer).mQzssEpheValid)) {
+        (mQzssEpheValid != ((const SystemStatusEphemeris&)peer).mQzssEpheValid) ||
+        (mNavicEpheValid != ((const SystemStatusEphemeris&)peer).mNavicEpheValid)) {
         return false;
     }
     return true;
