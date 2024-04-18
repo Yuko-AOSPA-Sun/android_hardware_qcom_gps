@@ -1495,7 +1495,6 @@ SystemStatus::SystemStatus(const MsgTask* msgTask) :
     mCache.mTimeZoneChange.clear();
     mCache.mTimeChange.clear();
     mCache.mWifiSupplicantStatus.clear();
-    mCache.mTac.clear();
     mCache.mMccMnc.clear();
 
     EXIT_LOG_WITH_ERROR ("%d",result);
@@ -1741,10 +1740,6 @@ bool SystemStatus::eventDataItemNotify(IDataItemCore* dataitem)
             ret = setIteminReport(mCache.mWifiSupplicantStatus, SystemStatusWifiSupplicantStatus(
                         *(static_cast<WifiSupplicantStatusDataItem*>(dataitem))));
             break;
-        case TAC_DATA_ITEM_ID:
-            ret = setIteminReport(mCache.mTac,
-                    SystemStatusTac(*(static_cast<TacDataItem*>(dataitem))));
-            break;
         case MCCMNC_DATA_ITEM_ID:
             ret = setIteminReport(mCache.mMccMnc,
                     SystemStatusMccMnc(*(static_cast<MccmncDataItem*>(dataitem))));
@@ -1839,7 +1834,6 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
         getIteminReport(report.mTimeZoneChange, mCache.mTimeZoneChange);
         getIteminReport(report.mTimeChange, mCache.mTimeChange);
         getIteminReport(report.mWifiSupplicantStatus, mCache.mWifiSupplicantStatus);
-        getIteminReport(report.mTac, mCache.mTac);
         getIteminReport(report.mMccMnc, mCache.mMccMnc);
     }
     else {
@@ -1874,7 +1868,6 @@ bool SystemStatus::getReport(SystemStatusReports& report, bool isLatestOnly,
         report.mTimeZoneChange.clear();
         report.mTimeChange.clear();
         report.mWifiSupplicantStatus.clear();
-        report.mTac.clear();
         report.mMccMnc.clear();
 
         report = mCache;

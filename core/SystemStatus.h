@@ -699,19 +699,6 @@ public:
         }
 };
 
-class SystemStatusTac : public SystemStatusItemBase {
-public:
-    TacDataItem mDataItem;
-    inline SystemStatusTac(std::string value=""): mDataItem(value) {}
-    inline SystemStatusTac(const TacDataItem& itemBase): mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mValue == ((const SystemStatusTac&)peer).mDataItem.mValue;
-    }
-    inline void dump(void) override {
-        LOC_LOGD("Tac: value=%s", mDataItem.mValue.c_str());
-    }
-};
-
 class SystemStatusMccMnc : public SystemStatusItemBase {
 public:
     MccmncDataItem mDataItem;
@@ -918,7 +905,6 @@ public:
     std::vector<SystemStatusTimeZoneChange>   mTimeZoneChange;
     std::vector<SystemStatusTimeChange>       mTimeChange;
     std::vector<SystemStatusWifiSupplicantStatus> mWifiSupplicantStatus;
-    std::vector<SystemStatusTac>              mTac;
     std::vector<SystemStatusMccMnc>           mMccMnc;
     std::vector<SystemStatusPreciseLocationEnabled>  mPreciseLocationEnabled;
     std::vector<SystemStatusTrackingStarted>  mTrackingStarted;
