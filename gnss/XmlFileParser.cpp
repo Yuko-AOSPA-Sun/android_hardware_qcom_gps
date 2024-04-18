@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
@@ -10,11 +10,28 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
 #include "log_util.h"
 #include <loc_misc_utils.h>
 
+#ifdef USE_GLIB
 #define LIB_XML_NAME "libxml2.so.2"
+#else
+#define LIB_XML_NAME "libxml2.so"
+#endif
 #define ECDSA_KEY_LENGTH 67
 #define HASH_FUNC_LENGTH 16
 #define PK_TYPE_LENGTH   32
 #define UHASH_LENGTH     32
+
+static void parse_scan_elements(xmlNode *a_node,
+        mgpOsnmaPublicKeyAndMerkleTreeStruct* merkle_tree, XmlParserInterface& xmlParser);
+static void parse_public_key_elements(xmlNode *a_node,
+        mgpOsnmaPublicKeyT& publicKey, XmlParserInterface& xmlParser);
+static void parse_tree_node_elements(xmlNode *a_node,
+        mgpOsnmaTreeNodeT& treeNode, XmlParserInterface& xmlParser);
+static int parse_int_element(xmlNode *pXmlNode, int& value,
+        const xmlChar * const xmlString, XmlParserInterface& xmlParser);
+static int parse_string_element(xmlNode *pXmlNode, char* p_arr, int len,
+        const xmlChar * const xmlString, XmlParserInterface& xmlParser);
+static void get_node_path(int j, int i, int rootJ, int rootI, vector<int>& vec);
+static mgpOsnmaTreeNodeT find_node(int j, int i, vector<mgpOsnmaTreeNodeT>& vec);
 
 
 // convert character of Hexadecimal into Decimal

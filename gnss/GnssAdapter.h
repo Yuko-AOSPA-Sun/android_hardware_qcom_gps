@@ -618,10 +618,8 @@ public:
     uint32_t registerXtraStatusUpdateCommand(bool registerUpdate);
     void configPrecisePositioningCommand(uint32_t featureId, bool enable,
             const std::string& appHash);
-#ifdef USE_GLIB
     uint32_t configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufferLength);
     uint32_t configOsnmaEnablementCommand(bool enable);
-#endif
 
     /* ========= ODCPI ===================================================================== */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */

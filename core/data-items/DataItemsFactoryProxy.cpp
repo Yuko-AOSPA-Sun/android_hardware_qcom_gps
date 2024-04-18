@@ -150,6 +150,9 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
     case QESDK_WWAN_FEATURE_STATUS_DATA_ITEM_ID:
         mydi = new QesdkWwanFeatureStatusDataItem(*((QesdkWwanFeatureStatusDataItem*)dataItem));
         break;
+    case QESDK_WWAN_CS_CONSENT_SRC_DATA_ITEM_ID:
+        mydi = new QesdkWwanCsConsentSrcDataItem(*((QesdkWwanCsConsentSrcDataItem*)dataItem));
+        break;
     case INVALID_DATA_ITEM_ID:
     case MAX_DATA_ITEM_ID:
     default:

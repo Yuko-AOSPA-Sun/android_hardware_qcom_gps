@@ -655,8 +655,8 @@ class QesdkWwanCsConsentSrcDataItem: public IDataItemCore {
     public:
         QesdkWwanCsConsentSrcDataItem(
                 uint32_t qesdkFeatureId = 0,
-                int32_t pid = 0,
-                int32_t uid = 0,
+                uint32_t pid = 0,
+                uint32_t uid = 0,
                 bool appHasFinePermission = false,
                 bool appHasBackgroundPermission = false,
                 string appHash = "",

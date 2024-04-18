@@ -88,9 +88,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gps_extended_c.h>
 #include <sys/stat.h>
 #include <thread>
-#ifdef USE_GLIB
 #include "XmlFileParser.h"
-#endif
 
 #define RAD2DEG    (180.0 / M_PI)
 #define DEG2RAD    (M_PI / 180.0)
@@ -1258,11 +1256,17 @@ GnssAdapter::setConfig()
         mLocApi->setPositionAssistedClockEstimatorMode(
                 mLocConfigInfo.paceConfigInfo.enable);
 
-        // robust location to be disabled on bootup by default
         if (mLocConfigInfo.robustLocationConfigInfo.isValid == false) {
             mLocConfigInfo.robustLocationConfigInfo.isValid = true;
+            // robust location to be enabled on bootup for auto targets
+#ifdef FEATURE_AUTOMOTIVE
+            mLocConfigInfo.robustLocationConfigInfo.enable = true;
+            mLocConfigInfo.robustLocationConfigInfo.enableFor911 = true;
+#else
+            // robust location to be disabled on bootup for non-auto targets
             mLocConfigInfo.robustLocationConfigInfo.enable = false;
             mLocConfigInfo.robustLocationConfigInfo.enableFor911 = false;
+#endif
         }
         mLocApi->configRobustLocation(
                 mLocConfigInfo.robustLocationConfigInfo.enable,
@@ -1740,6 +1744,9 @@ GnssAdapter::combineBlacklistSvs(const GnssSvIdConfig& blacklistSvs,
 
     // Blacklist all SVs for each disabled constellation
     if (constellationConfig.blacklistedSvTypesMask) {
+        if (constellationConfig.blacklistedSvTypesMask & GNSS_SV_TYPES_MASK_GPS_BIT) {
+            combinedBlacklistSvs.gpsBlacklistSvMask = GNSS_SV_CONFIG_ALL_BITS_ENABLED_MASK;
+        }
         if (constellationConfig.blacklistedSvTypesMask & GNSS_SV_TYPES_MASK_GLO_BIT) {
             combinedBlacklistSvs.gloBlacklistSvMask = GNSS_SV_CONFIG_ALL_BITS_ENABLED_MASK;
         }
@@ -1756,11 +1763,12 @@ GnssAdapter::combineBlacklistSvs(const GnssSvIdConfig& blacklistSvs,
             combinedBlacklistSvs.navicBlacklistSvMask = GNSS_SV_CONFIG_ALL_BITS_ENABLED_MASK;
         }
     }
-    LOC_LOGv("combined blacklist bds 0x%" PRIx64 ", glo 0x%" PRIx64
+    LOC_LOGv("combined blacklist gps 0x%" PRIx64 ", bds 0x%" PRIx64 ", glo 0x%" PRIx64
             ", qzss 0x%" PRIx64 ", gal 0x%" PRIx64 ", sbas 0x%" PRIx64 ", navic 0x%" PRIx64,
-            combinedBlacklistSvs.bdsBlacklistSvMask, combinedBlacklistSvs.gloBlacklistSvMask,
-            combinedBlacklistSvs.qzssBlacklistSvMask, combinedBlacklistSvs.galBlacklistSvMask,
-            combinedBlacklistSvs.sbasBlacklistSvMask, combinedBlacklistSvs.navicBlacklistSvMask);
+            combinedBlacklistSvs.gpsBlacklistSvMask, combinedBlacklistSvs.bdsBlacklistSvMask,
+            combinedBlacklistSvs.gloBlacklistSvMask, combinedBlacklistSvs.qzssBlacklistSvMask,
+            combinedBlacklistSvs.galBlacklistSvMask, combinedBlacklistSvs.sbasBlacklistSvMask,
+            combinedBlacklistSvs.navicBlacklistSvMask);
 
 }
 
@@ -2047,6 +2055,7 @@ GnssAdapter::convertToGnssSvIdConfig(
 
     // Empty vector => Clear any previous blacklisted SVs
     if (0 == blacklistedSvIds.size()) {
+        config.gpsBlacklistSvMask = 0;
         config.gloBlacklistSvMask = 0;
         config.bdsBlacklistSvMask = 0;
         config.qzssBlacklistSvMask = 0;
@@ -2061,6 +2070,10 @@ GnssAdapter::convertToGnssSvIdConfig(
             GnssSvId initialSvId = 0;
             uint16_t svIndexOffset = 0;
             switch (source.constellation) {
+            case GNSS_SV_TYPE_GPS:
+                svMaskPtr = &config.gpsBlacklistSvMask;
+                initialSvId = GNSS_SV_CONFIG_GPS_INITIAL_SV_ID;
+                break;
             case GNSS_SV_TYPE_GLONASS:
                 svMaskPtr = &config.gloBlacklistSvMask;
                 initialSvId = GNSS_SV_CONFIG_GLO_INITIAL_SV_ID;
@@ -2124,6 +2137,7 @@ GnssAdapter::convertToGnssSvIdConfig(
 
         // Return true if any one source is valid
         if (0 != config.gloBlacklistSvMask ||
+                0 != config.gpsBlacklistSvMask ||
                 0 != config.bdsBlacklistSvMask ||
                 0 != config.galBlacklistSvMask ||
                 0 != config.qzssBlacklistSvMask ||
@@ -2133,9 +2147,9 @@ GnssAdapter::convertToGnssSvIdConfig(
         }
     }
 
-    LOC_LOGd("blacklist bds 0x%" PRIx64 ", glo 0x%" PRIx64
+    LOC_LOGd("blacklist gps 0x%" PRIx64 ", bds 0x%" PRIx64 ", glo 0x%" PRIx64
             ", qzss 0x%" PRIx64 ", gal 0x%" PRIx64 ", sbas 0x%" PRIx64 ", navic 0x%" PRIx64,
-             config.bdsBlacklistSvMask, config.gloBlacklistSvMask,
+             config.gpsBlacklistSvMask, config.bdsBlacklistSvMask, config.gloBlacklistSvMask,
              config.qzssBlacklistSvMask, config.galBlacklistSvMask,
             config.sbasBlacklistSvMask, config.navicBlacklistSvMask);
 
@@ -2146,6 +2160,11 @@ void GnssAdapter::convertFromGnssSvIdConfig(
         const GnssSvIdConfig& svConfig, std::vector<GnssSvIdSource>& blacklistedSvIds)
 {
     // Convert blacklisted SV mask values to vectors
+    if (svConfig.gpsBlacklistSvMask) {
+        convertGnssSvIdMaskToList(
+                svConfig.gpsBlacklistSvMask, blacklistedSvIds,
+                GNSS_SV_CONFIG_GPS_INITIAL_SV_ID, GNSS_SV_TYPE_GPS);
+    }
     if (svConfig.bdsBlacklistSvMask) {
         convertGnssSvIdMaskToList(
                 svConfig.bdsBlacklistSvMask, blacklistedSvIds,
@@ -2261,8 +2280,9 @@ void GnssAdapter::reportGnssSvIdConfig(const GnssSvIdConfig& svIdConfig)
         if (config.blacklistedSvIds.size() > 0) {
             config.flags |= GNSS_CONFIG_FLAGS_BLACKLISTED_SV_IDS_BIT;
         }
-        LOC_LOGd("blacklist bds 0x%" PRIx64 ", glo 0x%" PRIx64 ", "
+        LOC_LOGd("blacklist gps 0x%" PRIx64 ", bds 0x%" PRIx64 ", glo 0x%" PRIx64 ", "
                  "qzss 0x%" PRIx64 ", gal 0x%" PRIx64 ", sbas 0x%" PRIx64 ", navic 0x%" PRIx64,
+                 svIdConfig.gpsBlacklistSvMask,
                  svIdConfig.bdsBlacklistSvMask, svIdConfig.gloBlacklistSvMask,
                  svIdConfig.qzssBlacklistSvMask, svIdConfig.galBlacklistSvMask,
                  svIdConfig.sbasBlacklistSvMask,  svIdConfig.navicBlacklistSvMask);
@@ -2327,8 +2347,9 @@ GnssAdapter::gnssSvTypeConfigUpdate(const GnssSvTypeConfig& currentConfig,
             newConfig.size, newConfig.blacklistedSvTypesMask,
             newConfig.enabledSvTypesMask);
 
-    LOC_LOGv("blacklist bds 0x%" PRIx64 ", glo 0x%" PRIx64
+    LOC_LOGv("blacklist gps 0x%" PRIx64 ", bds 0x%" PRIx64 ", glo 0x%" PRIx64
             ", qzss 0x%" PRIx64 ", gal 0x%" PRIx64 ", sbas 0x%" PRIx64 ", Navic 0x%" PRIx64,
+            mGnssSvIdConfig.gpsBlacklistSvMask,
             mGnssSvIdConfig.bdsBlacklistSvMask, mGnssSvIdConfig.gloBlacklistSvMask,
             mGnssSvIdConfig.qzssBlacklistSvMask, mGnssSvIdConfig.galBlacklistSvMask,
             mGnssSvIdConfig.sbasBlacklistSvMask, mGnssSvIdConfig.navicBlacklistSvMask);
@@ -2360,6 +2381,9 @@ GnssAdapter::gnssSvTypeConfigUpdate(const GnssSvTypeConfig& currentConfig,
         GnssSvTypesMask reEnableSvTypesMask = currentConfig.blacklistedSvTypesMask &
                 newConfig.enabledSvTypesMask;
         if (reEnableSvTypesMask) {
+            if (reEnableSvTypesMask & GNSS_SV_TYPES_MASK_GPS_BIT) {
+                blacklistConfig.gpsBlacklistSvMask = 0;
+            }
             if (reEnableSvTypesMask & GNSS_SV_TYPES_MASK_GLO_BIT) {
                 blacklistConfig.gloBlacklistSvMask = 0;
             }
@@ -3564,7 +3588,8 @@ void GnssAdapter::reStartTimeBasedTracking() {
                 multiplexedOptions = it2->second;
                 optionSetOnce = true;
             } else {
-                multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
+                multiplexedOptions.multiplexWithForTimeBasedRequest(
+                    it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
             }
         }
 
@@ -3593,11 +3618,13 @@ GnssAdapter::startTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t sessi
                 multiplexedOptions = it2->second;
                 optionSetOnce = true;
             } else {
-                multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
+                multiplexedOptions.multiplexWithForTimeBasedRequest(
+                    it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
             }
         }
         TrackingOptions priorOptions = multiplexedOptions;
-        multiplexedOptions.multiplexWithForTimeBasedRequest(options);
+        multiplexedOptions.multiplexWithForTimeBasedRequest(
+            options, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
         if (!priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
             startTimeBasedTracking(client, sessionId, multiplexedOptions);
             // need to wait for QMI callback
@@ -3847,7 +3874,8 @@ GnssAdapter::updateTrackingMultiplex(LocationAPI* client, uint32_t id,
                     multiplexedOptions = it2->second;
                     optionSetOnce = true;
                 } else {
-                    multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
+                    multiplexedOptions.multiplexWithForTimeBasedRequest(
+                        it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
                 }
             }
         }
@@ -3866,8 +3894,10 @@ GnssAdapter::updateTrackingMultiplex(LocationAPI* client, uint32_t id,
             }
         } else {
             TrackingOptions priorOptions = multiplexedOptions;
-            priorOptions.multiplexWithForTimeBasedRequest(it->second);
-            multiplexedOptions.multiplexWithForTimeBasedRequest(trackingOptions);
+            priorOptions.multiplexWithForTimeBasedRequest(
+                it->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+            multiplexedOptions.multiplexWithForTimeBasedRequest(
+                trackingOptions, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
             if (false == priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
                 // restart time based tracking with the newly updated options
                 updateTracking(client, id, multiplexedOptions, it->second);
@@ -3960,12 +3990,14 @@ GnssAdapter::stopTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t id)
                         multiplexedOptions = it2->second;
                         optionSetOnce = true;
                     } else {
-                        multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
+                        multiplexedOptions.multiplexWithForTimeBasedRequest(
+                            it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
                     }
                 }
             }
             TrackingOptions priorOptions = multiplexedOptions;
-            priorOptions.multiplexWithForTimeBasedRequest(it->second);
+            priorOptions.multiplexWithForTimeBasedRequest(
+                it->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
 
             if (!priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
                 // restart time based tracking with the newly updated options
@@ -8173,7 +8205,6 @@ void GnssAdapter::configPrecisePositioningCommand(
     sendMsg(new MsgConfigPrecisePositioning(*this, enable, appHash, featureId));
 }
 
-#ifdef USE_GLIB
 uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufLen) {
     // generated session id will be none-zero
     uint32_t sessionId = generateSessionId();
@@ -8209,12 +8240,11 @@ uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffe
                 mAdapter.reportResponse(LOCATION_ERROR_INVALID_PARAMETER, mSessionId);
                 LOC_LOGE("MsgConfigMerkleTreeParams: Merkle tree config file parse failed");
                 if (treeParam != nullptr) {
-                    delete treeParam;
+                    delete[] treeParam;
                 }
                 return;
             }
             //inject Merkle tree Parameter into PE
-            LocationError err = LOCATION_ERROR_SUCCESS;
             int keyNum = (treeParam[1].zPublicKey.uFlag == 1)? 2: 1;
             LocApiResponse* locApiResponse = new LocApiResponse(*mAdapter.getContext(),
                     [&mAdapter = mAdapter, mSessionId = mSessionId, treeParam, keyNum,
@@ -8227,7 +8257,7 @@ uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffe
                         mAdapter.reportResponse(err, mSessionId);
                         // clean treeParam when response for the last public key reports
                         if (treeParam != nullptr) {
-                            delete treeParam;
+                            delete[] treeParam;
                             treeParam = nullptr;
                         }
                     });
@@ -8235,7 +8265,7 @@ uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffe
                         LOC_LOGE("MsgConfigMerkleTreeParams: memory alloc failed");
                         mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
                         if (treeParam != nullptr) {
-                            delete treeParam;
+                            delete[] treeParam;
                             treeParam = nullptr;
                         }
                     } else {
@@ -8245,7 +8275,7 @@ uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffe
                     mAdapter.reportResponse(err, mSessionId);
                     // clean treeParam after response for the only injection reports
                     if (treeParam != nullptr) {
-                        delete treeParam;
+                        delete[] treeParam;
                         treeParam = nullptr;
                     }
                 }
@@ -8254,7 +8284,7 @@ uint32_t GnssAdapter::configMerkleTreeCommand(const char * merkleTreeConfigBuffe
                 LOC_LOGE("MsgConfigMerkleTreeParams: memory alloc failed");
                 mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
                 if (treeParam != nullptr) {
-                    delete treeParam;
+                    delete[] treeParam;
                     treeParam = nullptr;
                 }
             } else {
@@ -8285,7 +8315,6 @@ uint32_t GnssAdapter::configOsnmaEnablementCommand(bool enable) {
         inline ~MsgConfigOsnmaEnablementParams() {}
         inline virtual void proc() const {
             //inject Merkle tree Parameter into PE
-            LocationError err = LOCATION_ERROR_SUCCESS;
             LocApiResponse* locApiResponse = new LocApiResponse(*mAdapter.getContext(),
                     [&mAdapter = mAdapter, mSessionId = mSessionId] (LocationError err) mutable {
                 mAdapter.reportResponse(err, mSessionId);
@@ -8302,7 +8331,6 @@ uint32_t GnssAdapter::configOsnmaEnablementCommand(bool enable) {
     sendMsg(new MsgConfigOsnmaEnablementParams(*this, *mLocApi, sessionId, enable));
     return sessionId;
 }
-#endif
 
 void GnssAdapter::reportGnssConfigEvent(uint32_t sessionId, const GnssConfig& gnssConfig)
 {
