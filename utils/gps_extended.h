@@ -492,6 +492,12 @@ typedef struct {
       - Units: Meters */
 } GnssEngineDebugDataInfo;
 
+/** Correction data Timestamp */
+typedef struct {
+    uint16_t gpsWeek;
+    uint32_t gpsWeekMs;
+} corrDataTimeStamp;
+
 /** Represents gps location extended. */
 typedef struct {
     /** set to sizeof(GpsLocationExtended) */
@@ -688,9 +694,22 @@ typedef struct {
     //   - Other values reserved.
     uint16_t dgnssStationId[DGNSS_STATION_ID_MAX];
 
+    /** Distance to baseStation. Unit - meters */
+    double calculatedBaseLineLength;
+
+    /** Age of corrections - Unit - milli-seconds */
+    uint64_t calculatedAgeMsecOfCorrections;
+
+    /** Raw Base station ECEF's */
+    double refStationECEF[3];
+
+    /** Raw Correction data Timestamp */
+    corrDataTimeStamp corrTimeStamp;
+
     /** Uncertainty for the GNSS leap second.
      *  Units -- Seconds */
     uint8_t leapSecondsUnc;
+
     /** helper function to check sanity of accurate time */
     bool isReportTimeAccurate() const {
         return ((gnssSystemTime.hasAccurateGpsTime() == true) &&

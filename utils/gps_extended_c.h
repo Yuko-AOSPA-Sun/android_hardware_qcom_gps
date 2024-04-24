@@ -496,6 +496,14 @@ typedef uint64_t GpsLocationExtendedFlags;
 /** GpsLocationExtended has valid numOfdgnssStationId and
  *  dgnssStationId. */
 #define GPS_LOCATION_EXTENDED_HAS_DGNSS_STATION_ID               0x80000000000000
+/*  GpsLocationExtended has valid engine Calculated BaseLineLength */
+#define GPS_LOCATION_EXTENDED_HAS_CALCULATED_BASE_LINE_LENGTH    0x100000000000000
+/*  GpsLocationExtended has valid engine Calculated Age */
+#define GPS_LOCATION_EXTENDED_HAS_CALCULATED_CORR_AGE            0x200000000000000
+/*  GpsLocationExtended has valid raw base station ECEF's */
+#define GPS_LOCATION_EXTENDED_HAS_RAW_RTK_BASE_STATION_ECEF      0x400000000000000
+/*  GpsLocationExtended has valid raw Correction Data Age Timestamp */
+#define GPS_LOCATION_EXTENDED_HAS_RAW_RTK_CORR_AGE_TIMESTAMP     0x800000000000000
 /** GpsLocationExtended has valid leapSecondsUnc */
 #define GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC               0x1000000000000000
 
