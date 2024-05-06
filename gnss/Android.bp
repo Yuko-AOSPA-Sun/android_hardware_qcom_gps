@@ -14,6 +14,7 @@ cc_library_shared {
         "libloc_core",
         "libgps.utils",
         "libxml2",
+        "libloc_base_util",
     ],
 
     srcs: [
@@ -31,6 +32,7 @@ cc_library_shared {
         "libloc_core_headers",
         "libloc_pla_headers",
         "liblocation_api_headers",
+        "libloc_base_util_headers",
     ],
 
 }
