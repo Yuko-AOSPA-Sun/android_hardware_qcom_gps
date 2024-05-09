@@ -1248,7 +1248,7 @@ struct TrackingOptions : LocationOptions {
             specialReq(SPECIAL_REQ_INVALID){}
     inline bool equalsInTimeBasedRequest(const TrackingOptions& other) const {
         return minInterval == other.minInterval && powerMode == other.powerMode &&
-                tbm == other.tbm && qualityLevelAccepted == other.qualityLevelAccepted;
+               qualityLevelAccepted == other.qualityLevelAccepted;
     }
     inline bool multiplexWithForTimeBasedRequest(
             const TrackingOptions& other, uint32_t bgTrackingIntervalMs = 0xFFFFFFFF) {
