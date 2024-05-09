@@ -516,4 +516,9 @@ DEFAULT_IMPL()
 void LocAdapterBase::
     reportSignalTypeCapabilities(const GnssCapabNotification& /*gnssCapabNotification*/)
 DEFAULT_IMPL()
+void LocAdapterBase::reportNtnStatusEvent(LocationError status,
+        const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse)
+DEFAULT_IMPL()
+void LocAdapterBase::reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask)
+DEFAULT_IMPL()
 } // namespace loc_core

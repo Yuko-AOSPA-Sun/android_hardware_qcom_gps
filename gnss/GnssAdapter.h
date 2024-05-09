@@ -445,6 +445,10 @@ class GnssAdapter : public LocAdapterBase {
     /*==== Qesdk Feature Status ========================================================*/
     std::string mAppHash;
 
+    /*==== 3rd party NTN status ========================================================*/
+    bool mIsNtnStatusValid;
+    GnssSignalTypeMask mNtnSignalTypeConfigMask;
+
 protected:
 
     /* ==== CLIENT ========================================================================= */
@@ -622,6 +626,10 @@ public:
     uint32_t configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufferLength);
     uint32_t configOsnmaEnablementCommand(bool enable);
     uint32_t gnssInjectMmfDataCommand(const GnssMapMatchedData& data);
+    void set3rdPartyNtnCapabilityCommand(bool isCapable);
+    void getNtnConfigSignalMaskCommand();
+    void setNtnConfigSignalMaskCommand(GnssSignalTypeMask gpsSignalTypeConfigMask);
+
     /* ========= ODCPI ===================================================================== */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
     void initOdcpiCommand(const odcpiRequestCallback& callback,
@@ -719,6 +727,9 @@ public:
     void reportPdnTypeFromWds(int pdnType, AGpsExtType agpsType, std::string apnName,
             AGpsBearerType bearerType);
     void reportXtraMpDisabledEvent();
+    void reportNtnStatusEvent(LocationError status,
+            const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse);
+    void reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask);
 
     /* ======== UTILITIES ================================================================= */
     bool needReportForAllClients(const UlpLocation& ulpLocation,

@@ -3483,6 +3483,13 @@ typedef std::function<void(
     const GnssSvEphemerisReport& svEphemeris
 )> gnssSvEphemerisCallback;
 
+/** Callback to receive NTN config signal mask*/
+typedef std::function<void(LocationError status,
+        const GnssSignalTypeMask& gpsSignalTypeConfigMask)> ntnConfigSignalMaskResponseCb;
+
+typedef std::function<void(const GnssSignalTypeMask& gpsSignalTypeConfigMask)>
+        ntnConfigSignalMaskChangedCb;
+
 struct LocationCallbacks {
     uint32_t size; // set to sizeof(LocationCallbacks)
     capabilitiesCallback capabilitiesCb;                // mandatory
@@ -3519,6 +3526,8 @@ struct LocationControlCallbacks {
     nfwStatusCallback nfwStatusCb;                   // optional
     isInEmergencySessionCallback isInEmergencyStatusCb; // optional
     xtraStatusCallback xtraStatusCb;                  // optional
+    ntnConfigSignalMaskResponseCb ntnConfigRespCb;    // optional
+    ntnConfigSignalMaskChangedCb ntnConfigChangedCb;  // optional
 };
 
 

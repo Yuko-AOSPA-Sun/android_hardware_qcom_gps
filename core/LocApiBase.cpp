@@ -550,6 +550,16 @@ void LocApiBase::reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMa
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportModemGnssQesdkFeatureStatus(mask));
 }
 
+void LocApiBase::reportNtnStatusEvent(LocationError status,
+        const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportNtnStatusEvent(
+                status, gpsSignalTypeConfigMask, isSetResponse));
+}
+
+void LocApiBase::reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportNtnConfigUpdateEvent(gpsSignalTypeConfigMask));
+}
+
 void LocApiBase::reportQwesCapabilities
 (
     const std::unordered_map<LocationQwesFeatureType, bool> &featureMap
@@ -1026,6 +1036,13 @@ void LocApiBase::configMerkleTree(mgpOsnmaPublicKeyAndMerkleTreeStruct* /*merkle
 DEFAULT_IMPL()
 
 void LocApiBase::configOsnmaEnablement(bool /*enable*/, LocApiResponse* /*adapterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::getNtnConfigSignalMask(LocApiResponse* /*adapterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::setNtnConfigSignalMask(GnssSignalTypeMask /*gpsSignalTypeConfigMask*/,
+            LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 int64_t RealtimeEstimator::getElapsedRealtimeEstimateNanos(int64_t curDataTimeNanos,
