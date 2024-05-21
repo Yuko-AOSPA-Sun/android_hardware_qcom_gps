@@ -82,22 +82,20 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gps_extended_c.h>
 
 #define GPS_MIN    (1)   //1-32
-#define SBAS_MIN   (33)
-#define GLO_MIN    (65)  //65-88
+#define GLO_MIN    (65)  //65-96
 #define QZSS_MIN   (193) //193-197
-#define BDS_MIN    (201) //201-237
+#define BDS_MIN    (201) //201-263
 #define GAL_MIN    (301) //301-336
-#define NAVIC_MIN  (401) //401-414
+#define NAVIC_MIN  (401) //401-420
 
 #define GPS_NUM     (32)
-#define SBAS_NUM    (32)
-#define GLO_NUM     (24)
+#define GLO_NUM     (32)
 #define QZSS_NUM    (5)
-#define BDS_NUM     (37)
+#define BDS_NUM     (63)
 #define GAL_NUM     (36)
-#define NAVIC_NUM   (14)
-#define SV_ALL_NUM_MIN  (GPS_NUM + GLO_NUM + QZSS_NUM + BDS_NUM + GAL_NUM) //=134
-#define SV_ALL_NUM      (SV_ALL_NUM_MIN + NAVIC_NUM) //=148
+#define NAVIC_NUM   (20)
+#define SV_ALL_NUM_MIN  (GPS_NUM + GLO_NUM + QZSS_NUM + BDS_NUM + GAL_NUM)
+#define SV_ALL_NUM (SV_ALL_NUM_MIN + NAVIC_NUM)
 
 namespace loc_core
 {
@@ -331,12 +329,14 @@ public:
     uint64_t  mBdsEpheValid;
     uint64_t  mGalEpheValid;
     uint8_t   mQzssEpheValid;
+    uint32_t  mNavicEpheValid;
     inline SystemStatusEphemeris() :
         mGpsEpheValid(0),
         mGloEpheValid(0),
         mBdsEpheValid(0ULL),
         mGalEpheValid(0ULL),
-        mQzssEpheValid(0) {}
+        mQzssEpheValid(0),
+        mNavicEpheValid(0) {}
     inline SystemStatusEphemeris(const SystemStatusPQWP4& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
@@ -699,19 +699,6 @@ public:
         }
 };
 
-class SystemStatusTac : public SystemStatusItemBase {
-public:
-    TacDataItem mDataItem;
-    inline SystemStatusTac(std::string value=""): mDataItem(value) {}
-    inline SystemStatusTac(const TacDataItem& itemBase): mDataItem(itemBase) {}
-    inline bool equals(const SystemStatusItemBase& peer) override {
-        return mDataItem.mValue == ((const SystemStatusTac&)peer).mDataItem.mValue;
-    }
-    inline void dump(void) override {
-        LOC_LOGD("Tac: value=%s", mDataItem.mValue.c_str());
-    }
-};
-
 class SystemStatusMccMnc : public SystemStatusItemBase {
 public:
     MccmncDataItem mDataItem;
@@ -918,7 +905,6 @@ public:
     std::vector<SystemStatusTimeZoneChange>   mTimeZoneChange;
     std::vector<SystemStatusTimeChange>       mTimeChange;
     std::vector<SystemStatusWifiSupplicantStatus> mWifiSupplicantStatus;
-    std::vector<SystemStatusTac>              mTac;
     std::vector<SystemStatusMccMnc>           mMccMnc;
     std::vector<SystemStatusPreciseLocationEnabled>  mPreciseLocationEnabled;
     std::vector<SystemStatusTrackingStarted>  mTrackingStarted;

@@ -42,7 +42,7 @@ LOCAL_STATIC_LIBRARIES += libhealthhalutils
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder_ndk \
-    android.hardware.gnss-V3-ndk \
+    android.hardware.gnss-V4-ndk \
     android.hardware.health-V1-ndk \
     android.hardware.health@1.0 \
     android.hardware.health@2.0 \
@@ -99,9 +99,11 @@ endif
 
 LOCAL_SHARED_LIBRARIES += \
     libhidlbase \
-    android.hardware.gnss-V3-ndk \
+    android.hardware.gnss-V4-ndk \
     android.hardware.gnss-aidl-impl-qti
 
 LOCAL_CFLAGS += $(GNSS_CFLAGS)
 
 include $(BUILD_EXECUTABLE)
+
+include $(LOCAL_PATH)/fuzzer/Android.mk

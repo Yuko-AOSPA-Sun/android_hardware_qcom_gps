@@ -255,20 +255,6 @@ bool XtraSystemStatusObserver::updateConnections(uint64_t allConnections,
     return ( LocIpc::send(*mXtraSender, (const uint8_t*)s.data(), s.size()));
 }
 
-bool XtraSystemStatusObserver::updateTac(const string& tac) {
-    mTac = tac;
-
-    if (!mReqStatusReceived) {
-        return true;
-    }
-
-    stringstream ss;
-    ss <<  "tac";
-    ss << " " << tac.c_str();
-    string s = ss.str();
-    return ( LocIpc::send(*mXtraSender, (const uint8_t*)s.data(), s.size()) );
-}
-
 bool XtraSystemStatusObserver::updateMccMnc(const string& mccmncCountry) {
     mMccmnc = mccmncCountry;
 
@@ -368,7 +354,7 @@ inline bool XtraSystemStatusObserver::onStatusRequested(int32_t statusUpdated) {
             << mNetworkHandle[7].toString() << endl
             << mNetworkHandle[8].toString() << endl
             << mNetworkHandle[MAX_NETWORK_HANDLES-1].toString() << endl
-            << mTac << endl << mMccmnc << endl << mIsConnectivityStatusKnown;
+            << mMccmnc << endl << mIsConnectivityStatusKnown;
 
     string s = ss.str();
     LocIpc::send(*mDgnssSender, (const uint8_t*)s.data(), s.size());
@@ -537,8 +523,6 @@ void XtraSystemStatusObserver::subscribe(bool yes)
 
     if (yes) {
         mSystemStatusObsrvr->subscribe(subItemIdSet, this);
-        unordered_set<DataItemId> reqItemIdSet = {TAC_DATA_ITEM_ID};
-        mSystemStatusObsrvr->requestData(reqItemIdSet, this);
     } else {
         mSystemStatusObsrvr->unsubscribe(subItemIdSet, this);
     }
@@ -589,13 +573,6 @@ void XtraSystemStatusObserver::notify(const unordered_set<IDataItemCore*>& dlist
                                 static_cast<NetworkInfoType*>(networkInfo->getNetworkHandle());
                         mXtraSysStatObj->updateConnections(networkInfo->getAllTypes(),
                                 networkHandleInfo, (*networkInfo).mRoaming);
-                    }
-                    break;
-
-                    case TAC_DATA_ITEM_ID:
-                    {
-                        TacDataItem* tac = static_cast<TacDataItem*>(each);
-                        mXtraSysStatObj->updateTac(tac->mValue);
                     }
                     break;
 

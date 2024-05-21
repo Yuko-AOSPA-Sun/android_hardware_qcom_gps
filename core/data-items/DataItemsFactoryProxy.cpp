@@ -123,9 +123,6 @@ IDataItemCore* DataItemsFactoryProxy::createNewDataItem(IDataItemCore* dataItem)
     case WIFI_SUPPLICANT_STATUS_DATA_ITEM_ID:
         mydi = new WifiSupplicantStatusDataItem(*((WifiSupplicantStatusDataItem*)dataItem));
         break;
-    case TAC_DATA_ITEM_ID:
-        mydi = new TacDataItem(*((TacDataItem*)dataItem));
-        break;
     case MCCMNC_DATA_ITEM_ID:
         mydi = new MccmncDataItem(*((MccmncDataItem*)dataItem));
         break;

@@ -532,17 +532,6 @@ public:
     string mWifiApSsid;
 };
 
-class TacDataItem: public IDataItemCore {
-public:
-    TacDataItem(const string & name = "") :
-        mValue (name) {mId = TAC_DATA_ITEM_ID;}
-    virtual ~TacDataItem() {}
-    virtual void stringify(string& /*valueStr*/) override;
-    virtual int32_t copyFrom(IDataItemCore* /*src*/) override;
-// Data members
-    string mValue;
-};
-
 class MccmncDataItem: public IDataItemCore {
 public:
     MccmncDataItem(const string & name = "") :

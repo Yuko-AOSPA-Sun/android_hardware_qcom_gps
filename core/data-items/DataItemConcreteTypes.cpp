@@ -128,7 +128,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RILLCELLINFO_FIELD_NB_EARFCN_OFFSET "NB-EARFCN-OFFSET"
 
 #define WIFI_SUPPLICANT_FIELD_STATE "WIFI-SUPPLICANT-STATE"
-#define TAC_FIELD_NAME "TAC"
 #define MCCMNC_FIELD_NAME "MCCMNC"
 
 #define OEM_GTP_UPLAOD_TRIGGER_READY_FIELD_NAME "OEM-GTP-UPLOAD-TRIGGER-READY"
@@ -405,18 +404,7 @@ void WifiSupplicantStatusDataItem::stringify(string& valueStr) {
     } while (0);
     EXIT_LOG_WITH_ERROR("%d", result);
 }
-void TacDataItem::stringify(string& valueStr) {
-    int32_t result = 0;
-    ENTRY_LOG();
-    do {
-        STRINGIFY_ERROR_CHECK_AND_DOWN_CAST(TacDataItem, TAC_DATA_ITEM_ID);
-        valueStr.clear ();
-        valueStr += TAC_FIELD_NAME;
-        valueStr += ": ";
-        valueStr += d->mValue;
-    } while (0);
-    EXIT_LOG_WITH_ERROR("%d", result);
-}
+
 void MccmncDataItem::stringify(string& valueStr) {
     int32_t result = 0;
     ENTRY_LOG();
@@ -668,18 +656,7 @@ int32_t WifiSupplicantStatusDataItem::copyFrom(IDataItemCore* src) {
     EXIT_LOG_WITH_ERROR("%d", result);
     return result;
 }
-int32_t TacDataItem::copyFrom(IDataItemCore* src) {
-    int32_t result = -1;
-    ENTRY_LOG();
-    do {
-        COPIER_ERROR_CHECK_AND_DOWN_CAST(TacDataItem, TAC_DATA_ITEM_ID);
-        if (0 == s->mValue.compare(d->mValue)) { result = 0; break; }
-        s->mValue = d->mValue;
-        result = 0;
-    } while (0);
-    EXIT_LOG("%d", result);
-    return result;
-}
+
 int32_t MccmncDataItem::copyFrom(IDataItemCore* src) {
     int32_t result = -1;
     ENTRY_LOG();
