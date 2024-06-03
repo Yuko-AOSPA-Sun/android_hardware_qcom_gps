@@ -177,6 +177,12 @@ public:
         uint8_t combinedBits = (1 << FIELD_MAX) - 1;
         return (combinedBits == (mEnhFields & combinedBits));
     }
+
+    inline bool isUserConsentEnabled() const {
+        uint8_t consentMask = (1 << FIELD_CONSENT);
+        return ((mEnhFields & consentMask) != 0) ;
+    }
+
     void setAction(Actions action = NO_OP) {
         mAction = action;
         if (NO_OP != mAction) {
