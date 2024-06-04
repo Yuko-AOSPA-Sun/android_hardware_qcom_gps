@@ -8976,11 +8976,17 @@ void GnssAdapter::handleDisablePPENtrip() {
 }
 
 void GnssAdapter::checkUpdateDgnssNtrip(bool isLocationValid) {
-    LOC_LOGd("isInSession %d mDgnssState 0x%x isLocationValid %d isMlpEnabled %d",
-            isInSession(), mDgnssState, isLocationValid, isMlpEnabled());
-    //Enable edgnss -daemon when isInSession and isMlpEnabled.
-    //isMlpEnabled is true when RTK or edgnss feature is enabled.
-    if (isInSession() && isMlpEnabled()) {
+    LOC_LOGd("isInSession %d mDgnssState 0x%x isLocationValid %d "
+             "isMlpEnabled %d mSystemPowerState %d",
+            isInSession(), mDgnssState, isLocationValid, isMlpEnabled(), mSystemPowerState);
+    //1. Enable edgnss-daemon when isInSession and isMlpEnabled.
+    // isMlpEnabled is true when RTK or edgnss feature is enabled.
+    //2. Modem sometimes send PVT very closely right after power is suspended
+    // so need to check power is not in suspend or shutdown state
+    if (isInSession() && isMlpEnabled() &&
+            (POWER_STATE_SUSPEND != mSystemPowerState) &&
+            (POWER_STATE_DEEP_SLEEP_ENTRY != mSystemPowerState) &&
+            (POWER_STATE_SHUTDOWN != mSystemPowerState)) {
         uint64_t curBootTime = getBootTimeMilliSec();
         if (mDgnssState == (DGNSS_STATE_ENABLE_NTRIP_COMMAND | DGNSS_STATE_NO_NMEA_PENDING)) {
             mDgnssState |= DGNSS_STATE_NTRIP_SESSION_STARTED;
