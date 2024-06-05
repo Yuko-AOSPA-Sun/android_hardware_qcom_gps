@@ -20,7 +20,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -57,6 +57,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <log_util.h>
 #include "GnssMeasurementInterface.h"
+#include "LocationUtil.h"
 #include <android/binder_auto_utils.h>
 #include <aidl/android/hardware/gnss/BnGnss.h>
 #include <inttypes.h>
@@ -394,60 +395,6 @@ void GnssMeasurementInterface::convertGnssConstellationType(
         default:
             out = GnssConstellationType::UNKNOWN;
             break;
-    }
-}
-
-void GnssMeasurementInterface::convertGnssMeasurementsCodeType(
-        const GnssMeasurementsCodeType& inCodeType,
-        const char* inOtherCodeTypeName, GnssSignalType& out) {
-
-    switch (inCodeType) {
-    case GNSS_MEASUREMENTS_CODE_TYPE_A:
-        out.codeType = out.CODE_TYPE_A;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_B:
-        out.codeType = out.CODE_TYPE_B;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_C:
-        out.codeType = out.CODE_TYPE_C;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_I:
-        out.codeType = out.CODE_TYPE_I;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_L:
-        out.codeType = out.CODE_TYPE_L;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_M:
-        out.codeType = out.CODE_TYPE_M;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_N:
-        out.codeType = out.CODE_TYPE_N;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_P:
-        out.codeType = out.CODE_TYPE_P;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_Q:
-        out.codeType = out.CODE_TYPE_Q;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_S:
-        out.codeType = out.CODE_TYPE_S;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_W:
-        out.codeType = out.CODE_TYPE_W;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_X:
-        out.codeType = out.CODE_TYPE_X;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_Y:
-        out.codeType = out.CODE_TYPE_Y;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_Z:
-        out.codeType = out.CODE_TYPE_Z;
-        break;
-    case GNSS_MEASUREMENTS_CODE_TYPE_OTHER:
-    default:
-        out.codeType = inOtherCodeTypeName;
-        break;
     }
 }
 
