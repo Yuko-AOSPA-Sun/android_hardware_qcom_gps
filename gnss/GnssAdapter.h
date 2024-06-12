@@ -452,6 +452,10 @@ class GnssAdapter : public LocAdapterBase {
     bool mIsNtnStatusValid;
     GnssSignalTypeMask mNtnSignalTypeConfigMask;
 
+    /*==== WakeLock acquire/release based on TBF ==================================*/
+    bool mIsWakeLockActive;
+    uint32_t mWakeLockEnableTbfThreshold;
+
 protected:
 
     /* ==== CLIENT ========================================================================= */

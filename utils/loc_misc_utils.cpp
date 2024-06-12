@@ -85,6 +85,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define GET_MSEC_FROM_TS(ts) ((ts.tv_sec * MSEC_IN_ONE_SEC) + (ts.tv_nsec + 500000)/1000000)
 
+#define WAKELOCK_STR "gnss_hal"
+
 int loc_util_split_string(char *raw_string, char **split_strings_ptr,
                           int max_num_substrings, char delimiter)
 {
@@ -425,4 +427,56 @@ void locUtilWaitForDir(const char* dirName, const char* uidName) {
         } while (counter < 10);
         LOC_LOGv("done check for uidName ctr:%d", counter);
     }
+}
+
+int32_t locAcquireWakeLock() {
+    LOC_LOGd("enter");
+    int32_t ret = 0;
+    const char * lockFile = "/sys/power/wake_lock";
+    int lockFd = -1;
+
+    errno = 0;
+    lockFd = open(lockFile, O_WRONLY | O_APPEND);
+
+    if (lockFd < 0) {
+        LOC_LOGe("Unable to write to wake lock file: %s", strerror(errno));
+        ret = -1;
+    } else {
+        ret = write(lockFd, WAKELOCK_STR, strlen(WAKELOCK_STR));
+        if (ret < 0) {
+            LOC_LOGe("Unable to write to wake lock file: %s", strerror(errno));
+            ret = -1;
+        }
+    }
+
+    if (lockFd >= 0) {
+        close(lockFd);
+    }
+    return ret;
+}
+
+int32_t locReleaseWakeLock() {
+    LOC_LOGd("enter");
+    int32_t ret = 0;
+    const char * unLockFile = "/sys/power/wake_unlock";
+    int unLockFd = -1;
+
+    errno = 0;
+    unLockFd = open(unLockFile, O_WRONLY | O_APPEND);
+
+    if (unLockFd < 0) {
+        LOC_LOGe("Unable to write to wake unlock file: %s", strerror(errno));
+        ret = -1;
+    } else {
+        ret = write(unLockFd, WAKELOCK_STR, strlen(WAKELOCK_STR));
+        if (ret < 0) {
+            LOC_LOGe("Unable to write to wake unlock file: %s", strerror(errno));
+            ret = -1;
+        }
+    }
+
+    if (unLockFd >= 0) {
+        close(unLockFd);
+    }
+    return ret;
 }

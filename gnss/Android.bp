@@ -26,7 +26,10 @@ cc_library_shared {
         "XmlFileParser.cpp",
     ],
 
-    cflags: ["-fno-short-enums"] + GNSS_CFLAGS,
+    cflags: ["-fno-short-enums",
+             "-D_ANDROID_",
+    ] + GNSS_CFLAGS,
+
     header_libs: [
         "libgps.utils_headers",
         "libloc_core_headers",

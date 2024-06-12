@@ -258,7 +258,13 @@ GnssAdapter::GnssAdapter() :
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_FUSED_BIT),
     mResponseTimer(this, (LocationError)0, (uint32_t)0),
     mIsNtnStatusValid(false),
-    mNtnSignalTypeConfigMask(GNSS_SIGNAL_GPS_L1CA|GNSS_SIGNAL_GPS_L5)
+    mNtnSignalTypeConfigMask(GNSS_SIGNAL_GPS_L1CA|GNSS_SIGNAL_GPS_L5),
+    mIsWakeLockActive(false),
+#ifdef _ANDROID_
+    mWakeLockEnableTbfThreshold(10000)
+#else
+    mWakeLockEnableTbfThreshold(0)
+#endif
 {
     LOC_LOGd("Constructor %p", this);
     mLocPositionMode.mode = LOC_POSITION_MODE_INVALID;
@@ -289,9 +295,11 @@ GnssAdapter::GnssAdapter() :
     mAgpsManager.registerATLCallbacks(atlOpenStatusCb, atlCloseStatusCb);
 
     // init default nmea setting based on gps.conf
+    // init default nmea setting and wake lock TBF threshold based on gps.conf
     uint32_t DATUM_TYPE = 0;
     const loc_param_s_type nmea_conf_params[] = {
         {"DATUM_TYPE", &DATUM_TYPE, NULL, 'n'},
+        {"WAKE_LOCK_ENABLE_TBF_THRESHOLD", &mWakeLockEnableTbfThreshold, NULL, 'n'},
     };
     UTIL_READ_CONF(LOC_PATH_GPS_CONF, nmea_conf_params);
     GnssGeodeticDatumType nmea_datum_type =
@@ -3349,6 +3357,12 @@ GnssAdapter::handleEngineUpEvent()
                 }
             }
 
+            //Release wake lock when modem SSR
+            if (mAdapter.mIsWakeLockActive) {
+                locReleaseWakeLock();
+                mAdapter.mIsWakeLockActive = false;
+            }
+
             mAdapter.gnssSecondaryBandConfigUpdate();
             // restart sessions only when Lock state is enabled and in power state resume
             mAdapter.initGnssPowerStatistics();
@@ -3821,6 +3835,12 @@ GnssAdapter::startTimeBasedTracking(LocationAPI* client, uint32_t sessionId,
                 reportResponse(client, err, sessionId);
             }
         ));
+        if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
+            int ret = locAcquireWakeLock();
+            if (ret >= 0) {
+                mIsWakeLockActive = true;
+            }
+        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -3859,6 +3879,17 @@ GnssAdapter::updateTracking(LocationAPI* client, uint32_t sessionId,
                 reportResponse(client, err, sessionId);
             }
         ));
+        if (mIsWakeLockActive) {
+            if (tempOptions.minInterval > mWakeLockEnableTbfThreshold) {
+                locReleaseWakeLock();
+                mIsWakeLockActive = false;
+            }
+        } else if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
+            int ret = locAcquireWakeLock();
+            if (ret >= 0) {
+                mIsWakeLockActive = true;
+            }
+        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -4164,6 +4195,10 @@ GnssAdapter::stopTracking(LocationAPI* client, uint32_t id)
                                [this, client, id] (LocationError err) {
         reportResponse(client, err, id);
     }));
+    if (mIsWakeLockActive) {
+        locReleaseWakeLock();
+        mIsWakeLockActive = false;
+    }
 
     if (isDgnssNmeaRequired()) {
         mDgnssState &= ~DGNSS_STATE_NO_NMEA_PENDING;
