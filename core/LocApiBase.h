@@ -267,6 +267,9 @@ public:
     void reportCompletedTrips(uint32_t accumulated_distance);
     void handleBatchStatusEvent(BatchingStatus batchStatus);
     void reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask);
+    void reportNtnStatusEvent(LocationError status,
+            const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse);
+    void reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask);
 
     // downward calls
     virtual void* getSibling();
@@ -413,6 +416,9 @@ public:
     virtual void configMerkleTree(mgpOsnmaPublicKeyAndMerkleTreeStruct* merkleTree,
             LocApiResponse* adapterResponse=nullptr);
     virtual void configOsnmaEnablement(bool enable, LocApiResponse* adapterResponse=nullptr);
+    virtual void getNtnConfigSignalMask(LocApiResponse* adapterResponse = nullptr);
+    virtual void setNtnConfigSignalMask(GnssSignalTypeMask gpsSignalTypeConfigMask,
+            LocApiResponse* adapterResponse = nullptr);
 };
 
 class RealtimeEstimator {

@@ -513,6 +513,18 @@ bool XtraSystemStatusObserver::updateXtraDataDeletion() {
     return ( LocIpc::send(*mXtraSender, (const uint8_t*)s.data(), s.size()) );
 }
 
+bool XtraSystemStatusObserver::set3rdPartyNtnCapability(bool enabled) {
+    if (!mReqStatusReceived) {
+        return false;
+    }
+
+    stringstream ss;
+    ss << "setExternalNtnCapability" << endl;
+    ss << " " << (enabled ? 1 : 0);
+    string s = ss.str();
+    return ( LocIpc::send(*mXtraSender, (const uint8_t*)s.data(), s.size()) );
+}
+
 void XtraSystemStatusObserver::subscribe(bool yes)
 {
     // Subscription data unordered_set

@@ -929,6 +929,7 @@ enum loc_api_adapter_event_index {
     LOC_API_ADAPTER_FEATURE_STATUS_UPDATE,             // Dynamic feature status update
     LOC_API_ADAPTER_REQUEST_ASSISTANCE_TIME,           // NTP time download request
     LOC_API_ADAPTER_GNSS_BANDS_SUPPORTED,              // GNSS bands supported
+    LOC_API_ADAPTER_NTN_CONFIG_UPDATE,                 // NTN config update
     LOC_API_ADAPTER_EVENT_MAX
 };
 
@@ -979,6 +980,8 @@ enum loc_api_adapter_event_index {
         (1ULL<<LOC_API_ADAPTER_REQUEST_ASSISTANCE_TIME)
 #define LOC_API_ADAPTER_BIT_GNSS_BANDS_SUPPORTED \
         (1ULL<<LOC_API_ADAPTER_GNSS_BANDS_SUPPORTED)
+#define LOC_API_ADAPTER_BIT_NTN_CONFIG_UPDATE \
+        (1ULL<<LOC_API_ADAPTER_NTN_CONFIG_UPDATE)
 
 typedef uint64_t LOC_API_ADAPTER_EVENT_MASK_T;
 

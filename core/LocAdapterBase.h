@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -297,6 +297,11 @@ public:
             const std::unordered_map<LocationQwesFeatureType, bool> &featureMap);
     virtual void reportDcMessage(const GnssDcReportInfo& dcReport);
     virtual void reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapabNotification);
+    //Response to getNtnConfigSignalMask and setNtnConfigSignalMask call
+    virtual void reportNtnStatusEvent(LocationError status,
+            const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse);
+    //Unsolicted NTN config update event from Modem
+    virtual void reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask);
 };
 
 } // namespace loc_core

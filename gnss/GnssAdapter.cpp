@@ -256,7 +256,9 @@ GnssAdapter::GnssAdapter() :
     mAppHash(""),
     m3GppSourceMask(QDGNSS_3GPP_SOURCE_UNKNOWN),
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_FUSED_BIT),
-    mResponseTimer(this, (LocationError)0, (uint32_t)0)
+    mResponseTimer(this, (LocationError)0, (uint32_t)0),
+    mIsNtnStatusValid(false),
+    mNtnSignalTypeConfigMask(GNSS_SIGNAL_GPS_L1CA|GNSS_SIGNAL_GPS_L5)
 {
     LOC_LOGd("Constructor %p", this);
     mLocPositionMode.mode = LOC_POSITION_MODE_INVALID;
@@ -415,6 +417,13 @@ GnssAdapter::setControlCallbacksCommand(LocationControlCallbacks& controlCallbac
             }
             if (mControlCallbacks.xtraStatusCb != NULL) {
                 mAdapter.mControlCallbacks.xtraStatusCb = mControlCallbacks.xtraStatusCb;
+            }
+            if (mControlCallbacks.ntnConfigRespCb != NULL) {
+                mAdapter.mControlCallbacks.ntnConfigRespCb = mControlCallbacks.ntnConfigRespCb;
+            }
+            if (mControlCallbacks.ntnConfigChangedCb != NULL) {
+                mAdapter.mControlCallbacks.ntnConfigChangedCb =
+                    mControlCallbacks.ntnConfigChangedCb;
             }
         }
     };
@@ -3354,6 +3363,10 @@ GnssAdapter::handleEngineUpEvent()
                     POWER_STATE_SHUTDOWN != mAdapter.mSystemPowerState) {
                     mAdapter.restartSessions(true);
                 }
+            }
+            //Set NTN status config to Modem if valid
+            if (mAdapter.mIsNtnStatusValid) {
+                mAdapter.mLocApi->setNtnConfigSignalMask(mAdapter.mNtnSignalTypeConfigMask);
             }
         }
     };
@@ -8234,6 +8247,53 @@ void GnssAdapter::reportXtraMpDisabledEvent() {
     sendMsg(new MsgReportXtraMpDisabled(*this));
 }
 
+void GnssAdapter::reportNtnStatusEvent(LocationError status,
+        const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse) {
+    struct MsgReportNtnStatus : public LocMsg {
+        GnssAdapter& mAdapter;
+        LocationError mStatus;
+        GnssSignalTypeMask mMask;
+        bool mIsSetResponse;
+
+        inline MsgReportNtnStatus(GnssAdapter& adapter, LocationError status, uint32_t mask,
+                bool isSetResponse) :
+            LocMsg(), mAdapter(adapter), mStatus(status),
+            mMask(mask), mIsSetResponse(isSetResponse) {}
+        inline virtual void proc() const {
+            if (mAdapter.mControlCallbacks.ntnConfigRespCb != NULL) {
+                mAdapter.mControlCallbacks.ntnConfigRespCb(mStatus, mMask);
+            } else {
+                LOC_LOGd("no ntnConfigRespCb registered");
+            }
+            if (mIsSetResponse) {
+                //This response is for setNtnConfigSignalTypeMask
+                //We need to save this status in GnssAdapter for Modem SSR case handling
+                mAdapter.mIsNtnStatusValid = true;
+                mAdapter.mNtnSignalTypeConfigMask = mMask;
+            }
+        }
+    };
+    sendMsg(new MsgReportNtnStatus(*this, status, gpsSignalTypeConfigMask, isSetResponse));
+}
+
+void GnssAdapter::reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask) {
+    struct MsgReportNtnConfigUpdate : public LocMsg {
+        GnssAdapter& mAdapter;
+        GnssSignalTypeMask mMask;
+
+        inline MsgReportNtnConfigUpdate(GnssAdapter& adapter, uint32_t mask) :
+            LocMsg(), mAdapter(adapter), mMask(mask) {}
+        inline virtual void proc() const {
+            if (mAdapter.mControlCallbacks.ntnConfigChangedCb != NULL) {
+                mAdapter.mControlCallbacks.ntnConfigChangedCb(mMask);
+            } else {
+                LOC_LOGd("no ntnConfigChangedCb registered");
+            }
+        }
+    };
+    sendMsg(new MsgReportNtnConfigUpdate(*this, gpsSignalTypeConfigMask));
+}
+
 uint32_t GnssAdapter::configXtraParamsCommand(bool enable,
                                               const XtraConfigParams& xtraParams) {
     // generated session id will be none-zero
@@ -8484,6 +8544,85 @@ uint32_t GnssAdapter::configOsnmaEnablementCommand(bool enable) {
 
     sendMsg(new MsgConfigOsnmaEnablementParams(*this, *mLocApi, sessionId, enable));
     return sessionId;
+}
+
+void GnssAdapter::set3rdPartyNtnCapabilityCommand(bool isCapable) {
+    struct MsgSet3rdPartyNtnCapability : public LocMsg {
+        GnssAdapter& mAdapter;
+        bool mIsCapable;
+
+        inline MsgSet3rdPartyNtnCapability(GnssAdapter& adapter, bool isCapable) :
+                LocMsg(), mAdapter(adapter), mIsCapable(isCapable) {}
+        inline ~MsgSet3rdPartyNtnCapability() {}
+        inline virtual void proc() const {
+            LOC_LOGd("set3rdPartyNtnCapability: %d", mIsCapable);
+            mAdapter.mXtraObserver.set3rdPartyNtnCapability(mIsCapable);
+        }
+    };
+    sendMsg(new MsgSet3rdPartyNtnCapability(*this, isCapable));
+}
+
+void GnssAdapter::getNtnConfigSignalMaskCommand() {
+    // generated session id will be none-zero
+    uint32_t sessionId = generateSessionId();
+    LOC_LOGd("session id %u", sessionId);
+    struct MsgGetNtnConfig : public LocMsg {
+        GnssAdapter&     mAdapter;
+        LocApiBase&      mApi;
+        uint32_t         mSessionId;
+
+        inline MsgGetNtnConfig(GnssAdapter& adapter, LocApiBase& api,
+                uint32_t sessionId) :
+                LocMsg(), mAdapter(adapter), mApi(api), mSessionId(sessionId) {}
+        inline ~MsgGetNtnConfig() {}
+        inline virtual void proc() const {
+            LocApiResponse* locApiResponse = new LocApiResponse(*mAdapter.getContext(),
+                    [&mAdapter = mAdapter, mSessionId = mSessionId] (LocationError err) mutable {
+                mAdapter.reportResponse(err, mSessionId);
+            });
+            if (!locApiResponse) {
+                LOC_LOGE("MsgSetNtnConfig: memory alloc failed");
+                mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
+            } else {
+                mApi.getNtnConfigSignalMask(locApiResponse);
+            }
+        }
+    };
+
+    sendMsg(new MsgGetNtnConfig(*this, *mLocApi, sessionId));
+}
+
+void GnssAdapter::setNtnConfigSignalMaskCommand(GnssSignalTypeMask gpsSignalTypeConfigMask) {
+    // generated session id will be none-zero
+    uint32_t sessionId = generateSessionId();
+    LOC_LOGd("session id %u, gpsSignalTypeConfigMask %d", sessionId, gpsSignalTypeConfigMask);
+    struct MsgSetNtnConfig : public LocMsg {
+        GnssAdapter&        mAdapter;
+        LocApiBase&         mApi;
+        uint32_t            mSessionId;
+        GnssSignalTypeMask  mMask;
+
+        inline MsgSetNtnConfig(GnssAdapter& adapter, LocApiBase& api,
+                uint32_t sessionId, uint32_t mask) :
+                LocMsg(), mAdapter(adapter), mApi(api), mSessionId(sessionId), mMask(mask) {}
+        inline ~MsgSetNtnConfig() {}
+        inline virtual void proc() const {
+            LocApiResponse* locApiResponse = new LocApiResponse(*mAdapter.getContext(),
+                    [&mAdapter = mAdapter, mSessionId = mSessionId] (LocationError err) mutable {
+                mAdapter.reportResponse(err, mSessionId);
+            });
+            if (!locApiResponse) {
+                LOC_LOGE("MsgSetNtnConfig: memory alloc failed");
+                mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
+            } else {
+                mAdapter.updateEvtMask(LOC_API_ADAPTER_BIT_NTN_CONFIG_UPDATE,
+                        LOC_REGISTRATION_MASK_ENABLED);
+                mApi.setNtnConfigSignalMask(mMask, locApiResponse);
+            }
+        }
+    };
+
+    sendMsg(new MsgSetNtnConfig(*this, *mLocApi, sessionId, gpsSignalTypeConfigMask));
 }
 
 void GnssAdapter::reportGnssConfigEvent(uint32_t sessionId, const GnssConfig& gnssConfig)
