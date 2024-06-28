@@ -208,7 +208,6 @@ GnssAdapter::GnssAdapter() :
     mGnssMbSvIdUsedInPosAvail(false),
     mControlCallbacks(),
     mAfwControlId(0),
-    mNmeaMask(0),
     mGnssSvIdConfig(),
     mGnssSeconaryBandConfig(),
     mGnssSvTypeConfigCb(nullptr),
@@ -1259,38 +1258,7 @@ GnssAdapter::setConfig()
 
     updateClientsEventMask();
 
-    if (!ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_ENGINE_DEBUG_DATA)) {
-        // set nmea mask type
-        uint32_t mask = 0;
-        if (NMEA_PROVIDER_MP == ContextBase::mGps_conf.NMEA_PROVIDER) {
-            mask |= LOC_NMEA_ALL_GENERAL_SUPPORTED_MASK;
-            if (ContextBase::mGps_conf.NMEA_TAG_BLOCK_GROUPING_ENABLED) {
-                mask |= LOC_NMEA_MASK_TAGBLOCK_V02;
-            }
-        }
-
-        if (ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_DEBUG_NMEA_V02)) {
-            mask |= LOC_NMEA_MASK_DEBUG_V02;
-        }
-
-        if (mNmeaMask != mask) {
-            mNmeaMask = mask;
-            if (mNmeaMask) {
-                for (auto it=mClientData.begin(); it != mClientData.end(); ++it) {
-                    if ((it->second.gnssNmeaCb != nullptr)) {
-                        updateEvtMask(LOC_API_ADAPTER_BIT_NMEA_1HZ_REPORT,
-                                LOC_REGISTRATION_MASK_ENABLED);
-                        break;
-                    }
-                }
-            }
-        }
-    } else {
-        // Modem does not provide noraml NMEA if ENGINE_DEBUG_DATA feature is available
-        // ensuring AP to nmea generation in this case
-        ContextBase::mGps_conf.NMEA_PROVIDER =  NMEA_PROVIDER_AP;
-        updateEvtMask(LOC_API_ADAPTER_BIT_ENGINE_DEBUG_DATA_REPORT, LOC_REGISTRATION_MASK_ENABLED);
-    }
+    updateEvtMask(LOC_API_ADAPTER_BIT_ENGINE_DEBUG_DATA_REPORT, LOC_REGISTRATION_MASK_ENABLED);
 
     std::string oldMoServerUrl = getMoServerUrl();
     setSuplHostServer(ContextBase::mGps_conf.SUPL_HOST,
@@ -1354,25 +1322,6 @@ GnssAdapter::setConfig()
         gnssUpdateConfig(oldMoServerUrl, moServerUrl, serverUrl,
                 gnssConfigRequested, gnssConfigRequested);
 
-        // set nmea mask type
-        uint32_t mask = 0;
-        if (ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_ENGINE_DEBUG_DATA)) {
-            mask |= LOC_API_ADAPTER_BIT_ENGINE_DEBUG_DATA_REPORT;
-        } else {
-            if (NMEA_PROVIDER_MP == gpsConf.NMEA_PROVIDER) {
-                mask |= LOC_NMEA_ALL_GENERAL_SUPPORTED_MASK;
-                if (gpsConf.NMEA_TAG_BLOCK_GROUPING_ENABLED) {
-                    mask |= LOC_NMEA_MASK_TAGBLOCK_V02;
-                }
-            }
-            if (ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_DEBUG_NMEA_V02)) {
-                mask |= LOC_NMEA_MASK_DEBUG_V02;
-            }
-
-            if (mask != 0) {
-                mLocApi->setNMEATypesSync(mask);
-            }
-        }
         // load tunc configuration from config file on first boot-up,
         // e.g.: adapter.mLocConfigInfo.tuncConfigInfo.isValid is false
         if (mLocConfigInfo.tuncConfigInfo.isValid == false) {
@@ -3182,12 +3131,7 @@ GnssAdapter::updateClientsEventMask()
         }
         if (it->second.gnssDataCb != nullptr) {
             mask |= LOC_API_ADAPTER_BIT_PARSED_POSITION_REPORT;
-            if (ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_ENGINE_DEBUG_DATA)) {
-                mask |= LOC_API_ADAPTER_BIT_ENGINE_DEBUG_DATA_REPORT;
-            } else {
-                mask |= LOC_API_ADAPTER_BIT_NMEA_1HZ_REPORT;
-                updateNmeaMask(mNmeaMask | LOC_NMEA_MASK_DEBUG_V02);
-            }
+            mask |= LOC_API_ADAPTER_BIT_ENGINE_DEBUG_DATA_REPORT;
         }
         if (it->second.gnssDcReportCb != nullptr) {
             mask |= LOC_API_ADAPTER_BIT_DISASTER_CRISIS_REPORT;
@@ -4484,15 +4428,13 @@ GnssAdapter::reportPositionEvent(const UlpLocation& ulpLocation,
                                  const GpsLocationExtended& locationExtended,
                                  enum loc_sess_status status,
                                  LocPosTechMask techMask,
-                                 GnssDataNotification* pDataNotify,
-                                 int msInWeek)
+                                 GnssDataNotification* pDataNotify)
 {
     // this position is from QMI LOC API, then send report to engine hub
     // also, send out SPE fix promptly to the clients that have registered
     // with SPE report
-    LOC_LOGd("reportPositionEvent, eng type: %d, unpro %d, sess status %d msInWeek %d",
-             locationExtended.locOutputEngType,
-             ulpLocation.unpropagatedPosition, status, msInWeek);
+    LOC_LOGd("reportPositionEvent, eng type: %d, unpro %d, sess status %d",
+             locationExtended.locOutputEngType, ulpLocation.unpropagatedPosition, status);
 
     struct MsgReportSPEPosition : public LocMsg {
         GnssAdapter& mAdapter;
@@ -4501,23 +4443,20 @@ GnssAdapter::reportPositionEvent(const UlpLocation& ulpLocation,
         enum loc_sess_status mStatus;
         LocPosTechMask mTechMask;
         mutable GnssDataNotification mDataNotify;
-        int mMsInWeek;
 
         inline MsgReportSPEPosition(GnssAdapter& adapter,
                                     const UlpLocation& ulpLocation,
                                     const GpsLocationExtended& locationExtended,
                                     enum loc_sess_status status,
                                     LocPosTechMask techMask,
-                                    GnssDataNotification dataNotify,
-                                    int msInWeek) :
+                                    GnssDataNotification dataNotify) :
             LocMsg(),
             mAdapter(adapter),
             mUlpLocation(ulpLocation),
             mLocationExtended(locationExtended),
             mStatus(status),
             mTechMask(techMask),
-            mDataNotify(dataNotify),
-            mMsInWeek(msInWeek) {}
+            mDataNotify(dataNotify) {}
         inline virtual void proc() const {
             if (mAdapter.mTimeBasedTrackingSessions.empty() &&
                 mAdapter.mDistanceBasedTrackingSessions.empty()) {
@@ -4527,10 +4466,6 @@ GnssAdapter::reportPositionEvent(const UlpLocation& ulpLocation,
             }
 
             if (mDataNotify.size != 0) {
-                if (mMsInWeek >= 0) {
-                    mAdapter.getDataInformation((GnssDataNotification&)mDataNotify,
-                                                mMsInWeek);
-                }
                 mAdapter.reportData(mDataNotify);
             }
 
@@ -4610,7 +4545,7 @@ GnssAdapter::reportPositionEvent(const UlpLocation& ulpLocation,
         }
 
         MsgReportSPEPosition* pLocMsg = new MsgReportSPEPosition(*this, ulpLocation,
-                locationExtended, status, techMask, dataNotifyCopy, msInWeek);
+                locationExtended, status, techMask, dataNotifyCopy);
         sendMsg((const LocMsg*)pLocMsg, (uint32_t)pvtReportTimeDelta);
     }
 }
@@ -4720,8 +4655,7 @@ bool GnssAdapter::needToGenerateNmeaReport(const uint32_t &gpsTimeOfWeekMs,
     bool retVal = false;
     uint64_t currentTimeNsec = 0;
 
-    if (NMEA_PROVIDER_AP == ContextBase::mGps_conf.NMEA_PROVIDER &&
-            !mTimeBasedTrackingSessions.empty()) {
+    if (!mTimeBasedTrackingSessions.empty()) {
         currentTimeNsec = (apTimeStamp.tv_sec * BILLION_NSEC + apTimeStamp.tv_nsec);
         if ((GNSS_NMEA_REPORT_RATE_NHZ == ContextBase::sNmeaReportRate) ||
                 (GPS_DEFAULT_FIX_INTERVAL_MS <= mLocPositionMode.min_interval)) {
@@ -5000,12 +4934,11 @@ GnssAdapter::reportPosition(const UlpLocation& ulpLocation,
 }
 
 void GnssAdapter::reportEngDebugDataInfo(const GnssEngineDebugDataInfo& gnssEngineDebugDataInfo) {
-    if (ContextBase::isFeatureSupported(LOC_SUPPORTED_FEATURE_ENGINE_DEBUG_DATA)) {
-        LOC_LOGd("Recived Engine debug data info");
-        SystemStatus* s = getSystemStatus();
-        if (nullptr != s) {
-            s->setEngineDebugDataInfo(gnssEngineDebugDataInfo);
-        }
+    LOC_LOGd("Recived Engine debug data info");
+
+    SystemStatus* s = getSystemStatus();
+    if (nullptr != s) {
+        s->setEngineDebugDataInfo(gnssEngineDebugDataInfo);
     }
 }
 
@@ -5286,8 +5219,7 @@ GnssAdapter::reportSv(GnssSvNotification& svNotify)
         }
     }
 
-    if (NMEA_PROVIDER_AP == ContextBase::mGps_conf.NMEA_PROVIDER &&
-        !mTimeBasedTrackingSessions.empty()) {
+    if (!mTimeBasedTrackingSessions.empty()) {
         std::vector<std::string> nmeaArraystr;
         LocOutputEngineType engineType = LOC_OUTPUT_ENGINE_SPE;
         loc_nmea_generate_sv(svNotify, nmeaArraystr);
@@ -5296,54 +5228,6 @@ GnssAdapter::reportSv(GnssSvNotification& svNotify)
 
     // report to engine hub to deliver to registered plugin
     mEngHubProxy->gnssReportSv(svNotify);
-}
-
-void
-GnssAdapter::reportNmeaEvent(const char* nmea, size_t length)
-{
-    if (NMEA_PROVIDER_AP == ContextBase::mGps_conf.NMEA_PROVIDER &&
-        !loc_nmea_is_debug(nmea, length)) {
-        return;
-    }
-
-    struct MsgReportNmea : public LocMsg {
-        GnssAdapter& mAdapter;
-        const char* mNmea;
-        size_t mLength;
-        inline MsgReportNmea(GnssAdapter& adapter,
-                             const char* nmea,
-                             size_t length) :
-            LocMsg(),
-            mAdapter(adapter),
-            mNmea(new char[length+1]),
-            mLength(length) {
-                if (mNmea == nullptr) {
-                    LOC_LOGE("MsgReportNmea, memory alloc failed");
-                    return;
-                }
-                strlcpy((char*)mNmea, nmea, length+1);
-            }
-        inline virtual ~MsgReportNmea()
-        {
-            delete[] mNmea;
-        }
-        inline virtual void proc() const {
-            // extract bug report info - this returns true if consumed by systemstatus
-            bool ret = false;
-            SystemStatus* s = mAdapter.getSystemStatus();
-            if (nullptr != s) {
-                ret = s->setNmeaString(mNmea, mLength);
-            }
-            if (false == ret) {
-                // forward NMEA message to upper layer
-                mAdapter.reportNmea(mNmea, mLength);
-                // DgnssNtrip
-                mAdapter.reportGGAToNtrip(mNmea);
-            }
-        }
-    };
-
-    sendMsg(new MsgReportNmea(*this, nmea, length));
 }
 
 void
@@ -5377,31 +5261,23 @@ GnssAdapter::reportNmea(const char* nmea,
 }
 
 void
-GnssAdapter::reportDataEvent(const GnssDataNotification& dataNotify,
-                             int msInWeek)
+GnssAdapter::reportDataEvent(const GnssDataNotification& dataNotify)
 {
     struct MsgReportData : public LocMsg {
         GnssAdapter& mAdapter;
         GnssDataNotification mDataNotify;
-        int mMsInWeek;
         inline MsgReportData(GnssAdapter& adapter,
-                             const GnssDataNotification& dataNotify,
-                             int msInWeek) :
+                             const GnssDataNotification& dataNotify) :
             LocMsg(),
             mAdapter(adapter),
-            mDataNotify(dataNotify),
-            mMsInWeek(msInWeek) {
+            mDataNotify(dataNotify) {
         }
         inline virtual void proc() const {
-            if (mMsInWeek >= 0) {
-                mAdapter.getDataInformation((GnssDataNotification&)mDataNotify,
-                                            mMsInWeek);
-            }
             mAdapter.reportData((GnssDataNotification&)mDataNotify);
         }
     };
 
-    sendMsg(new MsgReportData(*this, dataNotify, msInWeek));
+    sendMsg(new MsgReportData(*this, dataNotify));
 }
 
 void
@@ -5761,23 +5637,18 @@ GnssAdapter::requestNiNotify(const GnssNiNotification& notify, const void* data,
 }
 
 void
-GnssAdapter::reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements,
-                                            int msInWeek)
+GnssAdapter::reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements)
 {
-    LOC_LOGv("msInWeek=%d, isNhz = %d", msInWeek, gnssMeasurements.gnssSvMeasurementSet.isNhz);
+    LOC_LOGv("isNhz = %d", gnssMeasurements.gnssSvMeasurementSet.isNhz);
 
     struct MsgReportGnssMeasurementData : public LocMsg {
         GnssAdapter& mAdapter;
         GnssMeasurements mGnssMeasurements;
         inline MsgReportGnssMeasurementData(GnssAdapter& adapter,
-                                            const GnssMeasurements& gnssMeasurements,
-                                            int msInWeek) :
+                                            const GnssMeasurements& gnssMeasurements) :
                 LocMsg(),
                 mAdapter(adapter),
                 mGnssMeasurements(gnssMeasurements) {
-            if (-1 != msInWeek && 0 != gnssMeasurements.gnssMeasNotification.count) {
-                mAdapter.getAgcInformation(mGnssMeasurements.gnssMeasNotification, msInWeek);
-            }
         }
 
         inline virtual void proc() const {
@@ -5791,7 +5662,7 @@ GnssAdapter::reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurement
         }
     };
 
-    sendMsg(new MsgReportGnssMeasurementData(*this, gnssMeasurements, msInWeek));
+    sendMsg(new MsgReportGnssMeasurementData(*this, gnssMeasurements));
 
     // some position engine requires the QMI order of PVT report and SV measurement
     // report to be preserved. So, send out both SV measurement report and PVT report
@@ -6953,25 +6824,44 @@ void GnssAdapter::dataConnFailedCommand(AGpsExtType agpsType){
 }
 
 void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
-                                       const GnssSvType& in_constellation,
                                        const SystemStatusReports& in)
 {
     uint64_t sv_mask = 0ULL;
-    uint32_t svid_min = 0;
-    uint32_t svid_num = 0;
-    uint32_t svid_idx = 0;
+    uint16_t svid_min = 0; // sv id start index in GnssDebugSatelliteInfo
+    uint16_t svid = 0;      // sv id
+    uint16_t svid_base = 0; // sv id base in the constellation
+    GnssSvType in_constellation;
 
     uint64_t eph_health_good_mask = 0ULL;
     uint64_t eph_health_bad_mask = 0ULL;
     uint64_t server_perdiction_available_mask = 0ULL;
     float server_perdiction_age = 0.0f;
 
-    // set constellationi based parameters
-    switch (in_constellation) {
+    // extract each sv info from systemstatus report
+    for (uint32_t i=0; i<in.mNavData.back().mNavLen; i++) {
+        svid = in.mNavData.back().mNav[i].gnssSvId;
+
+        if (svid >= GPS_SV_ID_MIN && svid <= GPS_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_GPS;
+        } else if (svid >= GLO_SV_ID_MIN && svid <= GLO_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_GLONASS;
+        } else if (svid >= QZSS_SV_ID_MIN && svid <= QZSS_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_QZSS;
+        } else if (svid >= BDS_SV_ID_MIN && svid <= BDS_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_BEIDOU;
+        } else if (svid >= GAL_SV_ID_MIN && svid <= GAL_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_GALILEO;
+        } else if (svid >= NAVIC_SV_ID_MIN && svid <= NAVIC_SV_ID_MAX) {
+           in_constellation = GNSS_SV_TYPE_NAVIC;
+        } else {
+           continue;
+        }
+
+        // set constellationi based parameters
+        switch (in_constellation) {
         case GNSS_SV_TYPE_GPS:
-            svid_min = GNSS_BUGREPORT_GPS_MIN;
-            svid_num = GPS_NUM;
-            svid_idx = 0;
+            svid_min = GNSS_BUGREPORT_GPS_SV_ID_MIN;
+            svid_base = GPS_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGpsGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGpsBadMask;
@@ -6982,9 +6872,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             }
             break;
         case GNSS_SV_TYPE_GLONASS:
-            svid_min = GNSS_BUGREPORT_GLO_MIN;
-            svid_num = GLO_NUM;
-            svid_idx = GPS_NUM;
+            svid_min = GNSS_BUGREPORT_GLO_SV_ID_MIN;
+            svid_base = GLO_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGloGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGloBadMask;
@@ -6995,9 +6884,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             }
             break;
         case GNSS_SV_TYPE_QZSS:
-            svid_min = GNSS_BUGREPORT_QZSS_MIN;
-            svid_num = QZSS_NUM;
-            svid_idx = GPS_NUM+GLO_NUM+BDS_NUM+GAL_NUM;
+            svid_min = GNSS_BUGREPORT_QZSS_SV_ID_MIN;
+            svid_base = QZSS_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mQzssGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mQzssBadMask;
@@ -7008,9 +6896,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             }
             break;
         case GNSS_SV_TYPE_BEIDOU:
-            svid_min = GNSS_BUGREPORT_BDS_MIN;
-            svid_num = BDS_NUM;
-            svid_idx = GPS_NUM+GLO_NUM;
+            svid_min = GNSS_BUGREPORT_BDS_SV_ID_MIN;
+            svid_base = BDS_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mBdsGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mBdsBadMask;
@@ -7021,9 +6908,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             }
             break;
         case GNSS_SV_TYPE_GALILEO:
-            svid_min = GNSS_BUGREPORT_GAL_MIN;
-            svid_num = GAL_NUM;
-            svid_idx = GPS_NUM+GLO_NUM+BDS_NUM;
+            svid_min = GNSS_BUGREPORT_GAL_SV_ID_MIN;
+            svid_base = GAL_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGalGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGalBadMask;
@@ -7034,9 +6920,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             }
             break;
         case GNSS_SV_TYPE_NAVIC:
-            svid_min = GNSS_BUGREPORT_NAVIC_MIN;
-            svid_num = NAVIC_NUM;
-            svid_idx = GPS_NUM+GLO_NUM+QZSS_NUM+BDS_NUM+GAL_NUM;
+            svid_min = GNSS_BUGREPORT_NAVIC_SV_ID_MIN;
+            svid_base = NAVIC_SV_ID_MIN;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mNavicGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mNavicBadMask;
@@ -7048,26 +6933,25 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         default:
             return;
-    }
+        }
 
-    // extract each sv info from systemstatus report
-    for (uint32_t i=0; i<svid_num && (svid_idx+i)<SV_ALL_NUM; i++) {
+        uint16_t sv_offset = svid - svid_base;
 
         GnssDebugSatelliteInfo s = {};
         s.size = sizeof(s);
-        s.svid = i + svid_min;
+        s.svid = svid_min + sv_offset;
         s.constellation = in_constellation;
 
         if (!in.mNavData.empty()) {
-            s.mEphemerisType   = in.mNavData.back().mNav[svid_idx+i].mType;
-            s.mEphemerisSource = in.mNavData.back().mNav[svid_idx+i].mSource;
+            s.mEphemerisType   = (GnssEphemerisType) in.mNavData.back().mNav[i].type;
+            s.mEphemerisSource = (GnssEphemerisSource) in.mNavData.back().mNav[i].src;
         }
         else {
             s.mEphemerisType   = GNSS_EPH_TYPE_UNKNOWN;
             s.mEphemerisSource = GNSS_EPH_SOURCE_UNKNOWN;
         }
 
-        sv_mask = 0x1ULL << i;
+        sv_mask = 0x1ULL << sv_offset;
         if (eph_health_good_mask & sv_mask) {
             s.mEphemerisHealth = GNSS_EPH_HEALTH_GOOD;
         }
@@ -7079,8 +6963,7 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
         }
 
         if (!in.mNavData.empty()) {
-            s.ephemerisAgeSeconds =
-                (float)(in.mNavData.back().mNav[svid_idx+i].mAgeSec);
+            s.ephemerisAgeSeconds =(float)(in.mNavData.back().mNav[i].age);
         }
         else {
             s.ephemerisAgeSeconds = 0.0f;
@@ -7094,7 +6977,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
         }
 
         s.serverPredictionAgeSeconds = server_perdiction_age;
-        out.push_back(s);
+
+        out.push_back(std::move(s));
     }
 
     return;
@@ -7196,145 +7080,10 @@ bool GnssAdapter::getDebugReport(GnssDebugReport& r)
     }
 
     // satellite info block
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GPS, reports);
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GLONASS, reports);
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_QZSS, reports);
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_BEIDOU, reports);
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GALILEO, reports);
-    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_NAVIC, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, reports);
     LOC_LOGa("satellite=%zu", r.mSatelliteInfo.size());
 
     return true;
-}
-
-/* get AGC information from system status and fill it */
-void
-GnssAdapter::getAgcInformation(GnssMeasurementsNotification& measurements, int msInWeek)
-{
-    SystemStatus* systemstatus = getSystemStatus();
-
-    if (nullptr != systemstatus) {
-        SystemStatusReports reports = {};
-        systemstatus->getReport(reports, true, false);
-
-        if ((!reports.mRfAndParams.empty()) && (!reports.mTimeAndClock.empty()) &&
-            (abs(msInWeek - (int)reports.mTimeAndClock.back().mGpsTowMs) < 2000)) {
-
-            for (size_t i = 0; i < measurements.count; i++) {
-                switch (measurements.measurements[i].svType) {
-                case GNSS_SV_TYPE_GPS:
-                case GNSS_SV_TYPE_QZSS:
-                    measurements.measurements[i].agcLevelDb =
-                            -((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                    measurements.measurements[i].flags |=
-                            GNSS_MEASUREMENTS_DATA_AUTOMATIC_GAIN_CONTROL_BIT;
-                    break;
-
-                case GNSS_SV_TYPE_GALILEO:
-                    measurements.measurements[i].agcLevelDb =
-                            -((double)reports.mRfAndParams.back().mJammerGal / 100.0);
-                    measurements.measurements[i].flags |=
-                            GNSS_MEASUREMENTS_DATA_AUTOMATIC_GAIN_CONTROL_BIT;
-                    break;
-
-                case GNSS_SV_TYPE_GLONASS:
-                    measurements.measurements[i].agcLevelDb =
-                            -((double)reports.mRfAndParams.back().mJammerGlo / 100.0);
-                    measurements.measurements[i].flags |=
-                            GNSS_MEASUREMENTS_DATA_AUTOMATIC_GAIN_CONTROL_BIT;
-                    break;
-
-                case GNSS_SV_TYPE_BEIDOU:
-                    measurements.measurements[i].agcLevelDb =
-                            -((double)reports.mRfAndParams.back().mJammerBds / 100.0);
-                    measurements.measurements[i].flags |=
-                            GNSS_MEASUREMENTS_DATA_AUTOMATIC_GAIN_CONTROL_BIT;
-                    break;
-
-                case GNSS_SV_TYPE_SBAS:
-                case GNSS_SV_TYPE_UNKNOWN:
-                default:
-                    break;
-                }
-            }
-        }
-    }
-}
-
-/* get Data information from system status and fill it */
-void
-GnssAdapter::getDataInformation(GnssDataNotification& data, int msInWeek)
-{
-    SystemStatus* systemstatus = getSystemStatus();
-
-    LOC_LOGa("msInWeek=%d", msInWeek);
-    if (nullptr != systemstatus) {
-        SystemStatusReports reports = {};
-        systemstatus->getReport(reports, true, false);
-
-        if ((!reports.mRfAndParams.empty()) && (!reports.mTimeAndClock.empty()) &&
-            (abs(msInWeek - (int)reports.mTimeAndClock.back().mGpsTowMs) < 2000)) {
-            int maxSig = std::min((int)GNSS_LOC_MAX_NUMBER_OF_SIGNAL_TYPES,
-                    (int)reports.mRfAndParams.back().mJammerInd.size());
-            for (int sig = GNSS_LOC_SIGNAL_TYPE_GPS_L1CA; sig < maxSig; sig++) {
-                data.gnssDataMask[sig] = 0;
-                data.jammerInd[sig] = 0.0;
-                data.agc[sig] = 0.0;
-               if (GNSS_INVALID_JAMMER_IND !=
-                       reports.mRfAndParams.back().mJammerInd[sig]) {
-                   data.jammerInd[sig] =
-                           (double)reports.mRfAndParams.back().mJammerInd[sig];
-                   data.agc[sig] = -(double)reports.mRfAndParams.back().mJammerInd[sig];
-                   data.gnssDataMask[sig] |= (GNSS_LOC_DATA_JAMMER_IND_BIT | GNSS_LOC_DATA_AGC_BIT);
-               }
-            }
-
-            if (GNSS_INVALID_JAMMER_IND != reports.mRfAndParams.back().mJammerGps) {
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_GPS_L1CA] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_GPS_L1CA] =
-                        -((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_GPS_L1CA] =
-                        ((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_QZSS_L1CA] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_QZSS_L1CA] =
-                        -((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_QZSS_L1CA] =
-                        ((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_SBAS_L1_CA] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_SBAS_L1_CA] =
-                        -((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_SBAS_L1_CA] =
-                        ((double)reports.mRfAndParams.back().mJammerGps / 100.0);
-            }
-            if (GNSS_INVALID_JAMMER_IND != reports.mRfAndParams.back().mJammerGlo) {
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_GLONASS_G1] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_GLONASS_G1] =
-                        -((double)reports.mRfAndParams.back().mJammerGlo / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_GLONASS_G1] =
-                        ((double)reports.mRfAndParams.back().mJammerGlo / 100.0);
-            }
-            if (GNSS_INVALID_JAMMER_IND != reports.mRfAndParams.back().mJammerBds) {
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_BEIDOU_B1_I] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_BEIDOU_B1_I] =
-                        -((double)reports.mRfAndParams.back().mJammerBds / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_BEIDOU_B1_I] =
-                        ((double)reports.mRfAndParams.back().mJammerBds / 100.0);
-            }
-            if (GNSS_INVALID_JAMMER_IND != reports.mRfAndParams.back().mJammerGal) {
-                data.gnssDataMask[GNSS_LOC_SIGNAL_TYPE_GALILEO_E1_C] |=
-                        GNSS_LOC_DATA_AGC_BIT | GNSS_LOC_DATA_JAMMER_IND_BIT;
-                data.agc[GNSS_LOC_SIGNAL_TYPE_GALILEO_E1_C] =
-                        -((double)reports.mRfAndParams.back().mJammerGal / 100.0);
-                data.jammerInd[GNSS_LOC_SIGNAL_TYPE_GALILEO_E1_C] =
-                        ((double)reports.mRfAndParams.back().mJammerGal / 100.0);
-            }
-        }
-    }
 }
 
 /* Callbacks registered with loc_net_iface library */
@@ -9305,52 +9054,6 @@ void GnssAdapter::stopDgnssNtrip() {
         mDgnssState &= ~DGNSS_STATE_NTRIP_SESSION_STARTED;
         mXtraObserver.stopDgnssSource();
     }
-}
-
-void GnssAdapter::reportGGAToNtrip(const char* nmea) {
-
-#define POS_OF_GGA (3)  //start position of "GGA"
-#define COMMAS_BEFORE_VALID (6) //"$GPGGA,,,,,,0,,,,,,,,*hh"
-
-    if (!isDgnssNmeaRequired()) {
-        return;
-    }
-
-    if (nullptr == nmea || 0 == strlen(nmea)) {
-        return;
-    }
-
-    string nmeaString(nmea);
-    size_t foundPos = nmeaString.find("GGA");
-    size_t foundNth = 0;
-    string GGAString;
-
-    if (foundPos != string::npos && foundPos >= POS_OF_GGA) {
-        size_t foundNextSentence = nmeaString.find("$", foundPos);
-        if (foundNextSentence != string::npos) {
-            /* remove other sentences after GGA */
-            GGAString = nmeaString.substr(foundPos - POS_OF_GGA, foundNextSentence);
-        } else {
-            /* GGA is the last sentence */
-            GGAString = nmeaString.substr(foundPos - POS_OF_GGA);
-        }
-        LOC_LOGv("GGAString %s", GGAString.c_str());
-
-        foundPos = GGAString.find(",");
-        while (foundPos != string::npos && foundNth < COMMAS_BEFORE_VALID) {
-            foundPos++;
-            foundNth++;
-            foundPos = GGAString.find(",", foundPos);
-        }
-
-        if (COMMAS_BEFORE_VALID == foundNth && GGAString.at(foundPos-1) != '0') {
-            mDgnssState |= DGNSS_STATE_NO_NMEA_PENDING;
-            mStartDgnssNtripParams.nmea = std::move(GGAString);
-            checkUpdateDgnssNtrip(true);
-        }
-    }
-
-    return;
 }
 
 void GnssAdapter::readPPENtripConfig() {
