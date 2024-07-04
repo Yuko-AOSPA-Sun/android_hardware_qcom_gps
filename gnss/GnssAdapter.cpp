@@ -843,7 +843,7 @@ GnssAdapter::convertLocationInfo(GnssLocationInfoNotification& out,
         out.navSolutionMask = locationExtended.navSolutionMask;
     }
     if (GPS_LOCATION_EXTENDED_HAS_POS_DYNAMICS_DATA & locationExtended.flags) {
-        out.flags |= GPS_LOCATION_EXTENDED_HAS_POS_DYNAMICS_DATA;
+        out.flags |= LDT_GNSS_LOCATION_INFO_POS_DYNAMICS_DATA_BIT;
         if (locationExtended.bodyFrameData.bodyFrameDataMask &
                 LOCATION_NAV_DATA_HAS_LONG_ACCEL_BIT) {
             out.bodyFrameData.bodyFrameDataMask |= LOCATION_NAV_DATA_HAS_LONG_ACCEL_BIT;
