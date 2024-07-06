@@ -91,7 +91,6 @@ typedef struct loc_gps_cfg_s
     char           XTRA_SERVER_2[LOC_MAX_PARAM_STRING];
     char           XTRA_SERVER_3[LOC_MAX_PARAM_STRING];
     uint32_t       USE_EMERGENCY_PDN_FOR_EMERGENCY_SUPL;
-    uint32_t       NMEA_PROVIDER;
     char           NMEA_REPORT_RATE[LOC_MAX_PARAM_NAME];
     GnssConfigGpsLock   GPS_LOCK;
     uint32_t       A_GLONASS_POS_PROTOCOL_SELECT;

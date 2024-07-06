@@ -330,30 +330,6 @@ void LocApiBase::updateEvtMask()
     sendMsg(new LocOpenMsg(this));
 }
 
-void LocApiBase::updateNmeaMask(uint32_t mask)
-{
-    struct LocSetNmeaMsg : public LocMsg {
-        LocApiBase* mLocApi;
-        uint32_t mMask;
-        inline LocSetNmeaMsg(LocApiBase* locApi, uint32_t mask) :
-            LocMsg(), mLocApi(locApi), mMask(mask)
-        {
-            locallog();
-        }
-        inline virtual void proc() const {
-            mLocApi->setNMEATypesSync(mMask);
-        }
-        inline void locallog() const {
-            LOC_LOGv("LocSyncNmea NmeaMask: %" PRIx32 "\n", mMask);
-        }
-        inline virtual void log() const {
-            locallog();
-        }
-    };
-
-    sendMsg(new LocSetNmeaMsg(this, mask));
-}
-
 void LocApiBase::handleEngineUpEvent()
 {
     // loop through adapters, and deliver to all adapters.
@@ -372,8 +348,7 @@ void LocApiBase::reportPosition(UlpLocation& location,
                                 GpsLocationExtended& locationExtended,
                                 enum loc_sess_status status,
                                 LocPosTechMask loc_technology_mask,
-                                GnssDataNotification* pDataNotify,
-                                int msInWeek)
+                                GnssDataNotification* pDataNotify)
 {
     // print the location info before delivering
     LOC_LOGd("\n  flags: 0x%x\n  source: %d\n  latitude: %f\n  longitude: %f\n  "
@@ -398,7 +373,7 @@ void LocApiBase::reportPosition(UlpLocation& location,
     TO_ALL_LOCADAPTERS(
         mLocAdapters[i]->reportPositionEvent(location, locationExtended,
                                              status, loc_technology_mask,
-                                             pDataNotify, msInWeek)
+                                             pDataNotify)
     );
 }
 
@@ -510,10 +485,10 @@ void LocApiBase::reportStatus(LocGpsStatusValue status)
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportStatus(status));
 }
 
-void LocApiBase::reportData(GnssDataNotification& dataNotify, int msInWeek)
+void LocApiBase::reportData(GnssDataNotification& dataNotify)
 {
     // loop through adapters, and deliver to all adapters.
-    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportDataEvent(dataNotify, msInWeek));
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportDataEvent(dataNotify));
 }
 
 void LocApiBase::reportNmea(const char* nmea, int length)
@@ -548,6 +523,16 @@ void LocApiBase::reportSignalTypeCapabilities(const GnssCapabNotification& gnssC
 
 void LocApiBase::reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask) {
     TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportModemGnssQesdkFeatureStatus(mask));
+}
+
+void LocApiBase::reportNtnStatusEvent(LocationError status,
+        const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportNtnStatusEvent(
+                status, gpsSignalTypeConfigMask, isSetResponse));
+}
+
+void LocApiBase::reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask) {
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportNtnConfigUpdateEvent(gpsSignalTypeConfigMask));
 }
 
 void LocApiBase::reportQwesCapabilities
@@ -608,10 +593,10 @@ void* LocApiBase :: getSibling()
 LocApiProxyBase* LocApiBase :: getLocApiProxy()
     DEFAULT_IMPL(NULL)
 
-void LocApiBase::reportGnssMeasurements(GnssMeasurements& gnssMeasurements, int msInWeek)
+void LocApiBase::reportGnssMeasurements(GnssMeasurements& gnssMeasurements)
 {
     // loop through adapters, and deliver to all adapters.
-    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportGnssMeasurementsEvent(gnssMeasurements, msInWeek));
+    TO_ALL_LOCADAPTERS(mLocAdapters[i]->reportGnssMeasurementsEvent(gnssMeasurements));
 }
 
 void LocApiBase::reportGnssSvIdConfig(const GnssSvIdConfig& config)
@@ -1026,6 +1011,13 @@ void LocApiBase::configMerkleTree(mgpOsnmaPublicKeyAndMerkleTreeStruct* /*merkle
 DEFAULT_IMPL()
 
 void LocApiBase::configOsnmaEnablement(bool /*enable*/, LocApiResponse* /*adapterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::getNtnConfigSignalMask(LocApiResponse* /*adapterResponse*/)
+DEFAULT_IMPL()
+
+void LocApiBase::setNtnConfigSignalMask(GnssSignalTypeMask /*gpsSignalTypeConfigMask*/,
+            LocApiResponse* /*adapterResponse*/)
 DEFAULT_IMPL()
 
 int64_t RealtimeEstimator::getElapsedRealtimeEstimateNanos(int64_t curDataTimeNanos,

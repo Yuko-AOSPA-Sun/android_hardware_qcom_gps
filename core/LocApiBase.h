@@ -162,7 +162,6 @@ protected:
         close();
     LOC_API_ADAPTER_EVENT_MASK_T getEvtMask();
     LOC_API_ADAPTER_EVENT_MASK_T mMask;
-    uint32_t mNmeaMask;
 
     LocApiBase(LOC_API_ADAPTER_EVENT_MASK_T excludedMask,
                ContextBase* context = NULL);
@@ -214,14 +213,13 @@ public:
                         enum loc_sess_status status,
                         LocPosTechMask loc_technology_mask =
                                   LOC_POS_TECH_MASK_DEFAULT,
-                        GnssDataNotification* pDataNotify = nullptr,
-                        int msInWeek = -1);
+                        GnssDataNotification* pDataNotify = nullptr);
     void reportSv(GnssSvNotification& svNotify);
     void reportSvPolynomial(GnssSvPolynomial &svPolynomial);
     void reportSvEphemeris(GnssSvEphemerisReport &svEphemeris);
     void reportStatus(LocGpsStatusValue status);
     void reportNmea(const char* nmea, int length);
-    void reportData(GnssDataNotification& dataNotify, int msInWeek);
+    void reportData(GnssDataNotification& dataNotify);
     void reportXtraServer(const char* url1, const char* url2,
                           const char* url3, const int maxlength);
     void reportLocationSystemInfo(const LocationSystemInfo& locationSystemInfo);
@@ -235,7 +233,7 @@ public:
     void releaseATL(int connHandle);
     void requestNiNotify(GnssNiNotification &notify, const void* data,
                          const LocInEmergency emergencyState);
-    void reportGnssMeasurements(GnssMeasurements& gnssMeasurements, int msInWeek);
+    void reportGnssMeasurements(GnssMeasurements& gnssMeasurements);
     void reportWwanZppFix(LocGpsLocation &zppLoc);
     void reportZppBestAvailableFix(LocGpsLocation &zppLoc, GpsLocationExtended &location_extended,
             LocPosTechMask tech_mask);
@@ -267,6 +265,9 @@ public:
     void reportCompletedTrips(uint32_t accumulated_distance);
     void handleBatchStatusEvent(BatchingStatus batchStatus);
     void reportModemGnssQesdkFeatureStatus(const ModemGnssQesdkFeatureMask& mask);
+    void reportNtnStatusEvent(LocationError status,
+            const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse);
+    void reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask);
 
     // downward calls
     virtual void* getSibling();
@@ -377,7 +378,6 @@ public:
     virtual void addToCallQueue(LocApiResponse* adapterResponse);
 
     void updateEvtMask();
-    void updateNmeaMask(uint32_t mask);
 
     virtual void updateSystemPowerState(PowerStateType systemPowerState);
     virtual void updatePowerConnectState(bool connected);
@@ -413,6 +413,9 @@ public:
     virtual void configMerkleTree(mgpOsnmaPublicKeyAndMerkleTreeStruct* merkleTree,
             LocApiResponse* adapterResponse=nullptr);
     virtual void configOsnmaEnablement(bool enable, LocApiResponse* adapterResponse=nullptr);
+    virtual void getNtnConfigSignalMask(LocApiResponse* adapterResponse = nullptr);
+    virtual void setNtnConfigSignalMask(GnssSignalTypeMask gpsSignalTypeConfigMask,
+            LocApiResponse* adapterResponse = nullptr);
 };
 
 class RealtimeEstimator {

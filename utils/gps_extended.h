@@ -475,6 +475,9 @@ typedef struct {
     GnssTimeInfo navDataTime;
     /**<   UTC time when navigation data was generated. */
 
+    uint32_t navDataLen;
+    /**<   Length of satellite navigation data. */
+
     GnssNavDataInfo navData[GNSS_MAX_SV_INFO_LIST_SIZE];
     /**<   Satellite navigation data. */
 

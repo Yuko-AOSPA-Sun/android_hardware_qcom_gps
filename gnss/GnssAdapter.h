@@ -81,6 +81,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <queue>
 #include <NativeAgpsHandler.h>
 #include <unordered_map>
+#include <base_util/nvparam_mgr.h>
 
 #define MAX_URL_LEN 256
 #define NMEA_SENTENCE_MAX_LENGTH 200
@@ -95,6 +96,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class GnssAdapter;
 
+using namespace qc_loc_fw;
 typedef std::map<LocationSessionKey, LocationOptions> LocationSessionMap;
 typedef std::map<LocationSessionKey, TrackingOptions> TrackingOptionsMap;
 
@@ -167,10 +169,6 @@ typedef struct {
     uint32_t reqIDCounter;
 } NiData;
 
-typedef enum {
-    NMEA_PROVIDER_AP = 0, // Application Processor Provider of NMEA
-    NMEA_PROVIDER_MP      // Modem Processor Provider of NMEA
-} NmeaProviderType;
 typedef struct {
     GnssSvType svType;
     const char* talker;
@@ -374,6 +372,7 @@ class GnssAdapter : public LocAdapterBase {
         HMAC_CONFIG_TEST_MODE,
     } HmacConfigType;
     HmacConfigType mHmacConfig;
+    NvParamMgr*   mNvParamMgr;
 
     /* === NativeAgpsHandler ======================================================== */
     NativeAgpsHandler mNativeAgpsHandler;
@@ -445,6 +444,14 @@ class GnssAdapter : public LocAdapterBase {
     /*==== Qesdk Feature Status ========================================================*/
     std::string mAppHash;
 
+    /*==== 3rd party NTN status ========================================================*/
+    bool mIsNtnStatusValid;
+    GnssSignalTypeMask mNtnSignalTypeConfigMask;
+
+    /*==== WakeLock acquire/release based on TBF ==================================*/
+    bool mIsWakeLockActive;
+    uint32_t mWakeLockEnableTbfThreshold;
+
 protected:
 
     /* ==== CLIENT ========================================================================= */
@@ -456,7 +463,11 @@ protected:
 
 public:
     GnssAdapter();
-    virtual inline ~GnssAdapter() { }
+    virtual inline ~GnssAdapter() {
+        if (nullptr != mNvParamMgr) {
+            mNvParamMgr->releaseInstance();
+        }
+    }
 
     /* ==== SSR ============================================================================ */
     /* ======== EVENTS ====(Called from QMI Thread)========================================= */
@@ -518,7 +529,7 @@ public:
     void configLeverArm(uint32_t sessionId, const LeverArmConfigInfo& configInfo);
     void configRobustLocation(uint32_t sessionId, bool enable, bool enableForE911);
     void configMinGpsWeek(uint32_t sessionId, uint16_t minGpsWeek);
-
+    void injectMmfData(uint32_t sessionId, const GnssMapMatchedData& mapData);
     /* ==== NI ============================================================================= */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
     void gnssNiResponseCommand(LocationAPI* client, uint32_t id, GnssNiResponse response);
@@ -621,6 +632,10 @@ public:
             const std::string& appHash);
     uint32_t configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufferLength);
     uint32_t configOsnmaEnablementCommand(bool enable);
+    uint32_t gnssInjectMmfDataCommand(const GnssMapMatchedData& data);
+    void set3rdPartyNtnCapabilityCommand(bool isCapable);
+    void getNtnConfigSignalMaskCommand();
+    void setNtnConfigSignalMaskCommand(GnssSignalTypeMask gpsSignalTypeConfigMask);
 
     /* ========= ODCPI ===================================================================== */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
@@ -676,19 +691,16 @@ public:
                                      const GpsLocationExtended& locationExtended,
                                      enum loc_sess_status status,
                                      LocPosTechMask techMask,
-                                     GnssDataNotification* pDataNotify = nullptr,
-                                     int msInWeek = -1);
+                                     GnssDataNotification* pDataNotify = nullptr);
     void reportEnginePositionsEvent(unsigned int count,
                                     EngineLocationInfo* locationArr);
     virtual void reportPropogatedPuncEvent(LocGpsLocation gpsLocation);
 
     virtual void reportSvEvent(const GnssSvNotification& svNotify);
-    virtual void reportNmeaEvent(const char* nmea, size_t length);
-    virtual void reportDataEvent(const GnssDataNotification& dataNotify, int msInWeek);
+    virtual void reportDataEvent(const GnssDataNotification& dataNotify);
     virtual bool requestNiNotifyEvent(const GnssNiNotification& notify, const void* data,
                                       const LocInEmergency emergencyState);
-    virtual void reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements,
-                                                int msInWeek);
+    virtual void reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements);
     virtual void reportSvPolynomialEvent(GnssSvPolynomial &svPolynomial);
     virtual void reportSvEphemerisEvent(GnssSvEphemerisReport & svEphemeris);
     virtual void reportGnssSvIdConfigEvent(const GnssSvIdConfig& config);
@@ -719,6 +731,9 @@ public:
     void reportPdnTypeFromWds(int pdnType, AGpsExtType agpsType, std::string apnName,
             AGpsBearerType bearerType);
     void reportXtraMpDisabledEvent();
+    void reportNtnStatusEvent(LocationError status,
+            const GnssSignalTypeMask& gpsSignalTypeConfigMask, bool isSetResponse);
+    void reportNtnConfigUpdateEvent(const GnssSignalTypeMask& gpsSignalTypeConfigMask);
 
     /* ======== UTILITIES ================================================================= */
     bool needReportForAllClients(const UlpLocation& ulpLocation,
@@ -814,7 +829,6 @@ public:
     static uint32_t convertAGloProt(const GnssConfigAGlonassPositionProtocolMask);
     static uint32_t convertSuplMode(const GnssConfigSuplModeMask suplModeMask);
     static void convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
-                                     const GnssSvType& in_constellation,
                                      const SystemStatusReports& in);
     static bool convertToGnssSvIdConfig(
             const std::vector<GnssSvIdSource>& blacklistedSvIds, GnssSvIdConfig& config);
@@ -865,7 +879,6 @@ public:
     void disablePPENtripStreamCommand();
     void handleEnablePPENtrip(const GnssNtripConnectionParams& params, bool enableRTKEngine);
     void handleDisablePPENtrip();
-    void reportGGAToNtrip(const char* nmea);
     inline bool isDgnssNmeaRequired() { return mSendNmeaConsent &&
             mStartDgnssNtripParams.ntripParams.requiresNmeaLocation;}
     void readPPENtripConfig();
@@ -878,6 +891,9 @@ public:
     // This function can only be called from Engine Hub
     void handleQesdkQwesStatusFromEHub(
             const std::unordered_map<LocationQwesFeatureType, bool> &featureMap);
+    void restoreConfigFromNvm();
+    LeverArmConfigInfo readVrpDataFromNvm();
+    bool storeVrpData2Nvm(const LeverArmConfigInfo& configInfo);
 
 };
 

@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2023, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -373,5 +373,39 @@ SIDE EFFECTS
    N/A
 ===========================================================================*/
 void locUtilWaitForDir(const char* dirName, const char* uidName = nullptr);
+
+/*===========================================================================
+FUNCTION locAcquireWakeLock()
+
+DESCRIPTION
+   This function will acquire wake lock and prevent CPU suspend
+
+DEPENDENCIES
+   N/A
+
+RETURN VALUE
+    int32_t ret, success if ret >= 0, fail if ret = -1.
+
+SIDE EFFECTS
+   Not thread safe, expected to call acquire and release from same thread
+===========================================================================*/
+int32_t locAcquireWakeLock();
+
+/*===========================================================================
+FUNCTION locReleaseWakeLock()
+
+DESCRIPTION
+   This function will release wake lock and allow CPU suspend
+
+DEPENDENCIES
+   N/A
+
+RETURN VALUE
+    int32_t ret, success if ret >= 0, fail if ret = -1.
+
+SIDE EFFECTS
+   Not thread safe, expected to call acquire and release from same thread
+===========================================================================*/
+int32_t locReleaseWakeLock();
 
 #endif //_LOC_MISC_UTILS_H_
