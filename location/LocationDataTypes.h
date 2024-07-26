@@ -1253,15 +1253,13 @@ struct TrackingOptions : LocationOptions {
         return minInterval == other.minInterval && powerMode == other.powerMode &&
                qualityLevelAccepted == other.qualityLevelAccepted;
     }
-    inline bool multiplexWithForTimeBasedRequest(
-            const TrackingOptions& other, uint32_t bgTrackingIntervalMs = 0xFFFFFFFF) {
+    inline bool multiplexWithForTimeBasedRequest(const TrackingOptions& other) {
         bool updated = false;
         if (other.minInterval < minInterval) {
             updated = true;
             minInterval = other.minInterval;
         }
-        if (other.powerMode < powerMode &&
-                other.minInterval < bgTrackingIntervalMs) {
+        if (other.powerMode < powerMode) {
             updated = true;
             powerMode = other.powerMode;
         }
