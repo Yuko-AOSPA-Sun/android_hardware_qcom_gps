@@ -7014,10 +7014,9 @@ bool GnssAdapter::getDebugReport(GnssDebugReport& r)
     else {
         r.mTime.mValid = false;
     }
-    if (!reports.mNavData.empty()) {
-        // satellite info block
-        convertSatelliteInfo(r.mSatelliteInfo, reports);
-    }
+
+    // satellite info block
+    convertSatelliteInfo(r.mSatelliteInfo, reports);
     LOC_LOGa("satellite=%zu", r.mSatelliteInfo.size());
 
     return true;
