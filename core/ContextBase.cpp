@@ -130,7 +130,6 @@ const loc_param_s_type ContextBase::mGps_conf_table[] =
   {"NMEA_TAG_BLOCK_GROUPING_ENABLED", &mGps_conf.NMEA_TAG_BLOCK_GROUPING_ENABLED, NULL, 'n'},
   {"NI_SUPL_DENY_ON_NFW_LOCKED",  &mGps_conf.NI_SUPL_DENY_ON_NFW_LOCKED, NULL, 'n'},
   {"ENABLE_NMEA_PRINT",  &mGps_conf.ENABLE_NMEA_PRINT, NULL, 'n'},
-  {"BG_TRACKING_INTERVAL_MS",  &mGps_conf.BG_TRACKING_INTERVAL_MS, NULL, 'n'},
 };
 
 const loc_param_s_type ContextBase::mSap_conf_table[] =
@@ -239,8 +238,6 @@ void ContextBase::readConfig()
         mGps_conf.NI_SUPL_DENY_ON_NFW_LOCKED = 1;
         /* By default NMEA Printing is disabled */
         mGps_conf.ENABLE_NMEA_PRINT = 0;
-        /* By default a background app interval is 600 seconds */
-        mGps_conf.BG_TRACKING_INTERVAL_MS = 600000;
 
         UTIL_READ_CONF(LOC_PATH_GPS_CONF, mGps_conf_table);
         UTIL_READ_CONF(LOC_PATH_SAP_CONF, mSap_conf_table);

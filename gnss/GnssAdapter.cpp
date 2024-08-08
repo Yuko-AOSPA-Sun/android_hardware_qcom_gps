@@ -1897,18 +1897,37 @@ GnssAdapter::gnssSvIdConfigUpdateSync(const std::vector<GnssSvIdSource>& blackli
 LocationError
 GnssAdapter::gnssSvConfigUpdate()
 {
-    GnssSvIdConfig blacklistConfig = {};
-    // combine sv constellation enablement/disablement from all sources (SDK and XTRA
-    GnssSvTypeConfig currentSvTypeConfig = gnssCombineSvTypeConfigs();
-    // combine sv constellation enablement/disablement with blacklist info
-    combineBlacklistSvs(mGnssSvIdConfig, currentSvTypeConfig, blacklistConfig);
-    mLocApi->setBlacklistSv(blacklistConfig);
+    static GnssSvTypesMask currentSvTypeEnabled = 0;
 
-    if (currentSvTypeConfig.size == 0) {
-         mLocApi->resetConstellationControl();
+    GnssSvIdConfig newBlacklistConfig = {};
+    // combine sv constellation enablement/disablement from all sources (SDK and XTRA
+    GnssSvTypeConfig newSvTypeConfig = gnssCombineSvTypeConfigs();
+    // combine sv constellation enablement/disablement (newSvTypeConfig)
+    // with blacklist info (mGnssSvIdConfig) into newBlacklistConfig
+    combineBlacklistSvs(mGnssSvIdConfig, newSvTypeConfig, newBlacklistConfig);
+    mLocApi->setBlacklistSv(newBlacklistConfig);
+
+    if (newSvTypeConfig.size == 0) {
+        mLocApi->resetConstellationControl();
     } else {
-        mLocApi->setConstellationControl(currentSvTypeConfig);
+       // if constellation disablement is not supported, and if constellation need to
+       // disabled, we will need to do reset, so that constellation can be disabled,
+       // otherwise, that constellation may only get blacklisted
+       bool disableSupported = ContextBase::isFeatureSupported(
+               LOC_SUPPORTED_FEATURE_CONSTELLATION_DISABLEMENT);
+       LOC_LOGd("disablement cap %d, current enabled constellation 0x%" PRIx64 ","
+                "new enabled constellation 0x%" PRIx64 "",
+                disableSupported, currentSvTypeEnabled, newSvTypeConfig.enabledSvTypesMask);
+        if (false == disableSupported) {
+            GnssSvTypesMask newSvTypeEnabled = newSvTypeConfig.enabledSvTypesMask;
+            if (currentSvTypeEnabled & (currentSvTypeEnabled ^ newSvTypeEnabled)) {
+                mLocApi->resetConstellationControl();
+            }
+        }
+        mLocApi->setConstellationControl(newSvTypeConfig);
     }
+
+    currentSvTypeEnabled = newSvTypeConfig.enabledSvTypesMask;
 
     return LOCATION_ERROR_SUCCESS;
 }
@@ -3622,8 +3641,7 @@ void GnssAdapter::reStartTimeBasedTracking() {
                 multiplexedOptions = it2->second;
                 optionSetOnce = true;
             } else {
-                multiplexedOptions.multiplexWithForTimeBasedRequest(
-                    it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+                multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
             }
         }
 
@@ -3652,13 +3670,11 @@ GnssAdapter::startTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t sessi
                 multiplexedOptions = it2->second;
                 optionSetOnce = true;
             } else {
-                multiplexedOptions.multiplexWithForTimeBasedRequest(
-                    it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+                multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
             }
         }
         TrackingOptions priorOptions = multiplexedOptions;
-        multiplexedOptions.multiplexWithForTimeBasedRequest(
-            options, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+        multiplexedOptions.multiplexWithForTimeBasedRequest(options);
         if (!priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
             startTimeBasedTracking(client, sessionId, multiplexedOptions);
             // need to wait for QMI callback
@@ -3925,8 +3941,7 @@ GnssAdapter::updateTrackingMultiplex(LocationAPI* client, uint32_t id,
                     multiplexedOptions = it2->second;
                     optionSetOnce = true;
                 } else {
-                    multiplexedOptions.multiplexWithForTimeBasedRequest(
-                        it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+                    multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
                 }
             }
         }
@@ -3945,10 +3960,8 @@ GnssAdapter::updateTrackingMultiplex(LocationAPI* client, uint32_t id,
             }
         } else {
             TrackingOptions priorOptions = multiplexedOptions;
-            priorOptions.multiplexWithForTimeBasedRequest(
-                it->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
-            multiplexedOptions.multiplexWithForTimeBasedRequest(
-                trackingOptions, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+            priorOptions.multiplexWithForTimeBasedRequest(it->second);
+            multiplexedOptions.multiplexWithForTimeBasedRequest(trackingOptions);
             if (false == priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
                 // restart time based tracking with the newly updated options
                 updateTracking(client, id, multiplexedOptions, it->second);
@@ -4041,14 +4054,12 @@ GnssAdapter::stopTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t id)
                         multiplexedOptions = it2->second;
                         optionSetOnce = true;
                     } else {
-                        multiplexedOptions.multiplexWithForTimeBasedRequest(
-                            it2->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+                        multiplexedOptions.multiplexWithForTimeBasedRequest(it2->second);
                     }
                 }
             }
             TrackingOptions priorOptions = multiplexedOptions;
-            priorOptions.multiplexWithForTimeBasedRequest(
-                it->second, ContextBase::mGps_conf.BG_TRACKING_INTERVAL_MS);
+            priorOptions.multiplexWithForTimeBasedRequest(it->second);
 
             if (!priorOptions.equalsInTimeBasedRequest(multiplexedOptions)) {
                 // restart time based tracking with the newly updated options
@@ -7014,9 +7025,10 @@ bool GnssAdapter::getDebugReport(GnssDebugReport& r)
     else {
         r.mTime.mValid = false;
     }
-
-    // satellite info block
-    convertSatelliteInfo(r.mSatelliteInfo, reports);
+    if (!reports.mNavData.empty()) {
+        // satellite info block
+        convertSatelliteInfo(r.mSatelliteInfo, reports);
+    }
     LOC_LOGa("satellite=%zu", r.mSatelliteInfo.size());
 
     return true;
