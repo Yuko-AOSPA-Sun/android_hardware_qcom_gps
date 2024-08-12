@@ -331,14 +331,15 @@ void GnssAdapter::restoreConfigFromNvm()
             mAdapter(adapter) {}
         inline virtual void proc() const {
             //Read GNSS VRP data
-            LeverArmConfigInfo configInfo = mAdapter.readVrpDataFromNvm();
-            LOC_LOGi("0x%x %f %f %f", configInfo.leverArmValidMask,
-                configInfo.gnssToVRP.forwardOffsetMeters,
-                configInfo.gnssToVRP.sidewaysOffsetMeters,
-                configInfo.gnssToVRP.upOffsetMeters);
-            if (configInfo.leverArmValidMask) {
+            mAdapter.mLocConfigInfo.leverArmConfigInfo = mAdapter.readVrpDataFromNvm();
+            LOC_LOGi("0x%x %f %f %f", mAdapter.mLocConfigInfo.leverArmConfigInfo.leverArmValidMask,
+                mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.forwardOffsetMeters,
+                mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.sidewaysOffsetMeters,
+                mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.upOffsetMeters);
+            if (mAdapter.mLocConfigInfo.leverArmConfigInfo.leverArmValidMask) {
                 if (true == mAdapter.mEngHubLoadSuccessful) {
-                    if (false == mAdapter.mEngHubProxy->configLeverArm(configInfo)) {
+                    if (false == mAdapter.mEngHubProxy->configLeverArm(
+                            mAdapter.mLocConfigInfo.leverArmConfigInfo)) {
                         LOC_LOGe("configLeverArm Failed");
                     } else {
                         LOC_LOGd("configLeverArm Success");
