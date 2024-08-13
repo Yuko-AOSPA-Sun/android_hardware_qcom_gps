@@ -28,10 +28,10 @@
  */
 
 /*
-Changes from Qualcomm Innovation Center are provided under the following license:
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
-SPDX-License-Identifier: BSD-3-Clause-Clear
-*/
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
 #ifndef BATCHING_ADAPTER_H
 #define BATCHING_ADAPTER_H
@@ -114,6 +114,7 @@ public:
             LocationAPI* client, uint32_t id, const BatchingOptions& batchOptions);
     void stopBatchingCommand(LocationAPI* client, uint32_t id);
     void getBatchedLocationsCommand(LocationAPI* client, uint32_t id, size_t count);
+    inline int32_t getBatchSizeCommand(LocationAPI* client) { return mBatchSize; }
     void updateSystemPowerStateCommand(PowerStateType systemPowerState);
     /* ======== RESPONSES ================================================================== */
     void reportResponse(LocationAPI* client, LocationError err, uint32_t sessionId);
@@ -151,8 +152,6 @@ public:
 
     /* ==== CONFIGURATION ================================================================== */
     /* ======== COMMANDS ====(Called from Client Thread)==================================== */
-    void readConfigCommand();
-    void setConfigCommand();
     /* ======== UTILITIES ================================================================== */
     void setBatchSize(size_t batchSize) { mBatchSize = batchSize; }
     size_t getBatchSize() { return mBatchSize; }

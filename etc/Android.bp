@@ -8,13 +8,6 @@ prebuilt_etc {
 
 prebuilt_etc {
 
-    name: "batching.conf",
-    vendor: true,
-    src: "batching.conf",
-}
-
-prebuilt_etc {
-
     name: "gnss_antenna_info.conf",
     vendor: true,
     src: "gnss_antenna_info.conf",
