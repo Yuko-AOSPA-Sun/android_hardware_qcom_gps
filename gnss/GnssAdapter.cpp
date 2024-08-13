@@ -1024,11 +1024,21 @@ GnssAdapter::convertLocationInfo(GnssLocationInfoNotification& out,
             out.dgnssStationId[i] = locationExtended.dgnssStationId[i];
         }
     }
+
+    if (GPS_LOCATION_EXTENDED_HAS_CALCULATED_BASE_LINE_LENGTH  & locationExtended.flags) {
+        out.flags |= LDT_GNSS_LOCATION_INFO_BASE_LINE_LENGTH_BIT;
+        out.baseLineLength = locationExtended.calculatedBaseLineLength;
+    }
+
+    if (GPS_LOCATION_EXTENDED_HAS_CALCULATED_CORR_AGE & locationExtended.flags) {
+        out.flags |= LDT_GNSS_LOCATION_INFO_AGE_OF_CORRECTION_BIT;
+        out.ageMsecOfCorrections = locationExtended.calculatedAgeMsecOfCorrections;
+    }
+
     if (GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC & locationExtended.flags) {
         out.flags |= LDT_GNSS_LOCATION_INFO_LEAP_SECONDS_UNC_BIT;
         out.leapSecondsUnc = locationExtended.leapSecondsUnc;
     }
-
 }
 
 inline uint32_t
@@ -4943,6 +4953,7 @@ GnssAdapter::reportEnginePositions(unsigned int count,
     if (isPrecisePositioningEnabled) {
         bool needReportEnginePositions = needReportEnginePosition();
         GnssLocationInfoNotification locationInfo[LOC_OUTPUT_ENGINE_COUNT] = {};
+        memset(locationInfo, 0, sizeof(locationInfo));
         for (unsigned int i = 0; i < count; i++) {
             const EngineLocationInfo* engLocation = (locationArr+i);
             // if it is fused/default location, call reportPosition maintain legacy behavior
