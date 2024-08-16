@@ -3009,8 +3009,15 @@ GnssAdapter::addClientCommand(LocationAPI* client, const LocationCallbacks& call
             mClient(client),
             mCallbacks(callbacks) {}
         inline virtual void proc() const {
-            // check whether we need to notify client of cached location system info
-            mAdapter.notifyClientOfCachedLocationSystemInfo(mClient, mCallbacks);
+            if (mAdapter.mLocSystemInfo.systemInfoMask && mCallbacks.locationSystemInfoCb) {
+                // notify client of cached location system info
+                mCallbacks.locationSystemInfoCb(mAdapter.mLocSystemInfo);
+            }
+
+            if (mAdapter.mGnssCapabNotification.count > 0 && mCallbacks.gnssSignalTypesCb) {
+                mCallbacks.gnssSignalTypesCb(mAdapter.mGnssCapabNotification);
+            }
+
             mAdapter.saveClient(mClient, mCallbacks);
         }
     };
@@ -3104,15 +3111,7 @@ GnssAdapter::updateClientsEventMask()
             mask |= LOC_API_ADAPTER_BIT_DISASTER_CRISIS_REPORT;
         }
         if (it->second.gnssSignalTypesCb != nullptr) {
-            // GNSS Bands supported
-            LOC_LOGd("GNSS Bands supported, mGnssCapabNotification.count = %d",
-                     mGnssCapabNotification.count);
             mask |= LOC_API_ADAPTER_BIT_GNSS_BANDS_SUPPORTED;
-            // Calling gnssSignalTypesCb here to pass VTS
-            // not necessary during normal operation, but doesn't hurt
-            if (mGnssCapabNotification.count > 0) {
-                it->second.gnssSignalTypesCb(mGnssCapabNotification);
-            }
         }
         if (it->second.svEphemerisCb != nullptr) {
             LOC_LOGd("GNSS EPH supported");
@@ -3346,21 +3345,6 @@ GnssAdapter::suspendSessions()
 
     if (!mTimeBasedTrackingSessions.empty()) {
         stopTracking();
-    }
-}
-
-void
-GnssAdapter::notifyClientOfCachedLocationSystemInfo(
-        LocationAPI* client, const LocationCallbacks& callbacks) {
-
-    if (mLocSystemInfo.systemInfoMask) {
-        // notify client of cached location system info
-        if (callbacks.locationSystemInfoCb) {
-            auto it = mClientData.find(client);
-            if (it != mClientData.end()) {
-                callbacks.locationSystemInfoCb(mLocSystemInfo);
-            }
-        }
     }
 }
 
@@ -5432,12 +5416,21 @@ GnssAdapter::reportSignalTypeCapabilities(const GnssCapabNotification& gnssCapab
             mAdapter(adapter),
             mGnssCapabNotification(gnssCapabNotification) {}
         inline virtual void proc() const {
-            // cache the data (for VTS only)
-            mAdapter.mGnssCapabNotification = mGnssCapabNotification;
-            for (auto it = mAdapter.mClientData.begin(); it != mAdapter.mClientData.end(); ++it) {
-                if (it->second.gnssSignalTypesCb != nullptr) {
-                    LOC_LOGA("MsgSignalTypeReport: calling gnssSignalTypesCb");
-                    it->second.gnssSignalTypesCb(mGnssCapabNotification);
+            // modem should only send out one signal type event, but
+            // below logic should work in case it send out multiple
+            if (mAdapter.mGnssCapabNotification.gnssSupportedSignals !=
+                    mGnssCapabNotification.gnssSupportedSignals) {
+                mAdapter.mGnssCapabNotification = mGnssCapabNotification;
+                for (auto it = mAdapter.mClientData.begin();
+                        it != mAdapter.mClientData.end(); ++it) {
+                    if (it->second.gnssSignalTypesCb != nullptr) {
+                        LOC_LOGd("MsgSignalTypeReport: client %p,"
+                                 "gnssSignalTypesCb: mGnssCapabNotification.count %d, "
+                                 "mGnssCapabNotification.gnssSupportedSignals 0x%x",
+                                 it->first, mGnssCapabNotification.count,
+                                 mGnssCapabNotification.gnssSupportedSignals);
+                        it->second.gnssSignalTypesCb(mGnssCapabNotification);
+                    }
                 }
             }
         }
