@@ -2298,6 +2298,10 @@ struct GnssDcReportInfo {
     uint32_t             numValidBits;
     // dc report data, packed into uint8_t
     std::vector<uint8_t> dcReportData;
+    /** SV's Pseudo-Random Number validity */
+    bool prnValid;
+    /** SV's Pseudo-Random Number. */
+    uint8_t prn;
 };
 
 // Specify the set of terrestrial technologies
