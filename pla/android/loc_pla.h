@@ -26,7 +26,8 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 #ifndef __LOC_PLA__
@@ -55,7 +56,6 @@ extern "C" {
 
 #define LOC_PATH_GPS_CONF_STR      "/vendor/etc/gps.conf"
 #define LOC_PATH_IZAT_CONF_STR     "/vendor/etc/izat.conf"
-#define LOC_PATH_BATCHING_CONF_STR "/vendor/etc/batching.conf"
 #define LOC_PATH_LOWI_CONF_STR     "/vendor/etc/lowi.conf"
 #define LOC_PATH_SAP_CONF_STR      "/vendor/etc/sap.conf"
 #define LOC_PATH_APDR_CONF_STR     "/vendor/etc/apdr.conf"
