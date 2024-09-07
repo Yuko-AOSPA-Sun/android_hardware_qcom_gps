@@ -96,6 +96,23 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GAL_SV_ID_MAX    (336) //301-336
 #define NAVIC_SV_ID_MAX  (420) //401-420
 
+#define GPS_SV_NUM    (GPS_SV_ID_MAX - GPS_SV_ID_MIN + 1)
+#define GLO_SV_NUM    (GLO_SV_ID_MAX - GLO_SV_ID_MIN + 1)
+#define QZSS_SV_NUM    (QZSS_SV_ID_MAX - QZSS_SV_ID_MIN + 1)
+#define BDS_SV_NUM     (BDS_SV_ID_MAX - BDS_SV_ID_MIN + 1)
+#define GAL_SV_NUM     (GAL_SV_ID_MAX - GAL_SV_ID_MIN + 1)
+#define NAVIC_SV_NUM   (NAVIC_SV_ID_MAX - NAVIC_SV_ID_MIN + 1)
+
+#define GPS_SV_INDEX_OFFSET   (0)
+#define GLO_SV_INDEX_OFFSET   (GPS_SV_INDEX_OFFSET + GPS_SV_NUM)
+#define QZSS_SV_INDEX_OFFSET  (GLO_SV_INDEX_OFFSET + GLO_SV_NUM)
+#define BDS_SV_INDEX_OFFSET   (QZSS_SV_INDEX_OFFSET + QZSS_SV_NUM)
+#define GAL_SV_INDEX_OFFSET   (BDS_SV_INDEX_OFFSET + BDS_SV_NUM)
+#define NAVIC_SV_INDEX_OFFSET (GAL_SV_INDEX_OFFSET + GAL_SV_NUM)
+
+#define SV_ALL_NUM  (GPS_SV_NUM + GLO_SV_NUM + QZSS_SV_NUM + \
+                  BDS_SV_NUM + GAL_SV_NUM + NAVIC_SV_NUM )
+
 #define GNSS_BUGREPORT_GPS_SV_ID_MIN    (1)
 #define GNSS_BUGREPORT_GLO_SV_ID_MIN    (1)
 #define GNSS_BUGREPORT_QZSS_SV_ID_MIN   (193)
@@ -381,14 +398,20 @@ public:
 
 };
 
+struct SystemStatusNav
+{
+    GnssEphemerisType   mType;
+    GnssEphemerisSource mSource;
+    int32_t             mAgeSec;
+};
+
 class SystemStatusNavData : public SystemStatusItemBase
 {
 public:
-    uint32_t mNavLen;
-    GnssNavDataInfo mNav[GNSS_MAX_SV_INFO_LIST_SIZE];
-
+    SystemStatusNav mNav[SV_ALL_NUM];
     inline SystemStatusNavData() {
-        mNavLen = 0;
+        // GNSS_EPH_TYPE_UNKNOWN and GNSS_EPH_TYPE_UNKNOWN are 0
+        memset(mNav, 0, sizeof (mNav));
     }
 
     inline SystemStatusNavData(const GnssEngineDebugDataInfo& info);
