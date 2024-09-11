@@ -156,7 +156,11 @@ void SystemStatusXoState::dump()
  SystemStatusRfAndParams
 ******************************************************************************/
 SystemStatusRfAndParams::SystemStatusRfAndParams(const GnssEngineDebugDataInfo& info) :
-    mJammedSignalsMask(info.jammedSignalsMask) {
+    mJammedSignalsMask(info.jammedSignalsMask),
+    mJammerGps(0),
+    mJammerGlo(0),
+    mJammerBds(0),
+    mJammerGal(0) {
 
     if (info.jammerInd.size() > 0) {
          mJammerGps = info.jammerInd[GNSS_LOC_SIGNAL_TYPE_GPS_L1CA];
