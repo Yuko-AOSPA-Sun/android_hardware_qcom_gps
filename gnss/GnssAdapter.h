@@ -857,8 +857,6 @@ public:
     inline PowerStateType getSystemPowerState() { return mSystemPowerState; }
 
     void setSuplHostServer(const char* server, int port, LocServerType type);
-    void notifyClientOfCachedLocationSystemInfo(LocationAPI* client,
-                                                const LocationCallbacks& callbacks);
     void updateSystemPowerStateCommand(PowerStateType systemPowerState);
     void updatePowerConnectStateCommand(bool connected);
     void setEsStatusCallbackCommand(std::function<void(bool)> esStatusCb);

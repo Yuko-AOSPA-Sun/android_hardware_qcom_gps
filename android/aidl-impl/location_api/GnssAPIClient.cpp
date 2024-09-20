@@ -163,6 +163,7 @@ GnssAPIClient::GnssAPIClient(const shared_ptr<IGnssCallback>& gpsCb) :
     mLocationCapabilitiesCached(false),
     mSvStatusEnabled(false),
     mNmeaEnabled(false),
+    mSignalTypeCbExpected(false),
     mGnssCbIface(gpsCb) {
     LOC_LOGd("]: (%p)", &gpsCb);
     initLocationOptions();
@@ -195,6 +196,8 @@ void GnssAPIClient::setFlpCallbacks() {
 }
 
 void GnssAPIClient::setCallbacks() {
+    LOC_LOGd("sv status enabled %d, nmea enabled %d",
+             mSvStatusEnabled, mNmeaEnabled);
     LocationCallbacks locationCallbacks;
     memset(&locationCallbacks, 0, sizeof(LocationCallbacks));
     locationCallbacks.size = sizeof(LocationCallbacks);
@@ -236,7 +239,9 @@ void GnssAPIClient::setCallbacks() {
 
 // for GpsInterface
 void GnssAPIClient::gnssUpdateCallbacks(const shared_ptr<IGnssCallback>& gpsCb) {
+    LOC_LOGd("]: ()");
     if (gpsCb != nullptr) {
+        mSignalTypeCbExpected = true;
         setCallbacks();
     }
 }
@@ -408,6 +413,7 @@ void GnssAPIClient::gnssDisable() {
     if (mControlClient == nullptr) {
         return;
     }
+    mSignalTypeCbExpected = false;
     mControlClient->locAPIDisable();
 }
 
@@ -616,13 +622,17 @@ void GnssAPIClient::onGnssSignalTypesCb(const GnssCapabNotification& gnssCapabNo
     auto gnssCbIface(mGnssCbIface);
     mMutex.unlock();
 
-    if (gnssCbIface != nullptr) {
-        std::vector<GnssSignalType> gnssSignalTypes;
-        convertGnssSignalType(gnssCapabNotification, gnssSignalTypes);
-        auto r = gnssCbIface->gnssSetSignalTypeCapabilitiesCb(gnssSignalTypes);
-        if (!r.isOk()) {
-            LOC_LOGe("Error from gnssSvStatusCb");
-        }
+    LOC_LOGd("mSignalTypeCbExpected = %d ", mSignalTypeCbExpected);
+    if ((gnssCbIface != nullptr) && (true == mSignalTypeCbExpected)) {
+       LOC_LOGd("report to aidl, new 0x%x ",
+                gnssCapabNotification.gnssSupportedSignals);
+       std::vector<GnssSignalType> gnssSignalTypes;
+       convertGnssSignalType(gnssCapabNotification, gnssSignalTypes);
+       auto r = gnssCbIface->gnssSetSignalTypeCapabilitiesCb(gnssSignalTypes);
+       if (!r.isOk()) {
+          LOC_LOGe("Error from gnssSvStatusCb");
+       }
+       mSignalTypeCbExpected = false;
     }
 }
 
