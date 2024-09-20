@@ -455,6 +455,7 @@ class GnssAdapter : public LocAdapterBase {
     /*==== WakeLock acquire/release based on TBF ==================================*/
     bool mIsWakeLockActive;
     uint32_t mWakeLockEnableTbfThreshold;
+    void acquireWakeLockBasedOnTBF(uint32_t tbfInMs);
 
 protected:
 

@@ -3266,11 +3266,9 @@ GnssAdapter::handleEngineUpEvent()
                 }
             }
 
-            //Release wake lock when modem SSR
-            if (mAdapter.mIsWakeLockActive) {
-                locReleaseWakeLock();
-                mAdapter.mIsWakeLockActive = false;
-            }
+            //Release wake lock when modem SSR or GNSS HAL process SSR
+            locReleaseWakeLock();
+            mAdapter.mIsWakeLockActive = false;
 
             mAdapter.gnssSecondaryBandConfigUpdate();
             // restart sessions only when Lock state is enabled and in power state resume
@@ -3680,6 +3678,24 @@ GnssAdapter::startTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t sessi
     return reportToClientWithNoWait;
 }
 
+void GnssAdapter::acquireWakeLockBasedOnTBF(uint32_t tbfInMs) {
+    LOC_LOGd("DEBUG: mIsWakeLockActive: %d, minInterval: %d, "
+            "mWakeLockEnableTbfThreshold: %d",
+            mIsWakeLockActive, tbfInMs,
+            mWakeLockEnableTbfThreshold);
+    if (mIsWakeLockActive) {
+        if (tbfInMs > mWakeLockEnableTbfThreshold) {
+            locReleaseWakeLock();
+            mIsWakeLockActive = false;
+        }
+    } else if (tbfInMs <= mWakeLockEnableTbfThreshold) {
+        int ret = locAcquireWakeLock();
+        if (ret >= 0) {
+            mIsWakeLockActive = true;
+        }
+    }
+}
+
 void
 GnssAdapter::startTimeBasedTracking(LocationAPI* client, uint32_t sessionId,
         const TrackingOptions& trackingOptions)
@@ -3715,23 +3731,20 @@ GnssAdapter::startTimeBasedTracking(LocationAPI* client, uint32_t sessionId,
     TrackingOptions tempOptions(trackingOptions);
     if (!checkAndSetSPEToRunforNHz(tempOptions)) {
         mLocApi->startTimeBasedTracking(tempOptions, new LocApiResponse(*getContext(),
-                          [this, client, sessionId] (LocationError err) {
+                          [this, client, sessionId, tempOptions] (LocationError err) {
                 if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
                     LOCATION_ERROR_SUCCESS != err) {
                     eraseTrackingSession(client, sessionId);
+                    locReleaseWakeLock();
+                    mIsWakeLockActive = false;
                 } else {
                     checkUpdateDgnssNtrip(false);
+                    acquireWakeLockBasedOnTBF(tempOptions.minInterval);
                 }
 
                 reportResponse(client, err, sessionId);
             }
         ));
-        if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
-            int ret = locAcquireWakeLock();
-            if (ret >= 0) {
-                mIsWakeLockActive = true;
-            }
-        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -3761,26 +3774,20 @@ GnssAdapter::updateTracking(LocationAPI* client, uint32_t sessionId,
     TrackingOptions tempOptions(updatedOptions);
     if (!checkAndSetSPEToRunforNHz(tempOptions)) {
         mLocApi->startTimeBasedTracking(tempOptions, new LocApiResponse(*getContext(),
-                          [this, client, sessionId, oldOptions] (LocationError err) {
+                          [this, client, sessionId, oldOptions, tempOptions] (LocationError err) {
                 if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
                     LOCATION_ERROR_SUCCESS != err) {
                     // restore the old LocationOptions
                     saveTrackingSession(client, sessionId, oldOptions);
+                    //Release wakelock
+                    locReleaseWakeLock();
+                    mIsWakeLockActive = false;
+                } else {
+                    acquireWakeLockBasedOnTBF(tempOptions.minInterval);
                 }
                 reportResponse(client, err, sessionId);
             }
         ));
-        if (mIsWakeLockActive) {
-            if (tempOptions.minInterval > mWakeLockEnableTbfThreshold) {
-                locReleaseWakeLock();
-                mIsWakeLockActive = false;
-            }
-        } else if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
-            int ret = locAcquireWakeLock();
-            if (ret >= 0) {
-                mIsWakeLockActive = true;
-            }
-        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -4080,11 +4087,9 @@ GnssAdapter::stopTracking(LocationAPI* client, uint32_t id)
             new LocApiResponse(*getContext(),
                                [this, client, id] (LocationError err) {
         reportResponse(client, err, id);
-    }));
-    if (mIsWakeLockActive) {
         locReleaseWakeLock();
         mIsWakeLockActive = false;
-    }
+    }));
 
     if (isDgnssNmeaRequired()) {
         mDgnssState &= ~DGNSS_STATE_NO_NMEA_PENDING;
