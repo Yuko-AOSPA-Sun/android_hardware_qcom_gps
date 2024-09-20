@@ -2994,6 +2994,108 @@ struct GnssEphCommon {
 
 };
 
+/** GPE/QZSS extended ephemeris reports */
+#define GNSS_EXT_EPH_ISC_L1CA_VALID 0x00000001
+#define GNSS_EXT_EPH_ISC_L2C_VALID  0x00000002
+#define GNSS_EXT_EPH_ISC_L5I5_VALID 0x00000004
+#define GNSS_EXT_EPH_ISC_L5Q5_VALID 0x00000008
+#define GNSS_EXT_EPH_ALERT_VALID 0x00000010
+#define GNSS_EXT_EPH_URANED0_VALID 0x00000020
+#define GNSS_EXT_EPH_URANED1_VALID 0x00000040
+#define GNSS_EXT_EPH_URANED2_VALID 0x00000080
+#define GNSS_EXT_EPH_TOP_VALID 0x00000100
+#define GNSS_EXT_EPH_TOP_CLOCK_VALID 0x00000200
+#define GNSS_EXT_EPH_VALIDITY_PERIOD_VALID 0x00000400
+#define GNSS_EXT_EPH_DELTA_NDOT_VALID 0x00000800
+#define GNSS_EXT_EPH_DELTAA_VALID 0x00001000
+#define GNSS_EXT_EPH_ADOT_VALID 0x00002000
+
+/* GPS Extended Ephemeris struct */
+struct GpsExtendedEphemeris {
+    uint16_t gnssSvId;
+    /**<   GNSS SV ID. \n
+       Range:\n
+       - GPS --     1 to 32 \n
+       - QZSS --    193 to 197 \n
+       - BDS --     201 to 263 \n
+       - Galileo -- 301 to 336 \n
+       - NavIC --   401 to 420 \n
+    */
+
+    uint32_t validityMask;
+    /**<   Specifies validity of all the fields.  \n
+        - iscL1ca -- 0x0001 \n
+        - iscL2c  -- 0x0002 \n
+        - iscL5I5  -- 0x0004  \n
+        - iscL5Q5 --  0x0008  \n
+        - alert   -- 0x0010 \n
+        - uraNed0  -- 0x0020 \n
+        - uraNed1  -- 0x0040  \n
+        - uraNed2 --  0x0080  \n
+        - top     -- 0x0100 \n
+        - topClock  -- 0x0200 \n
+        - validityPeriod  -- 0x0400  \n
+        - deltaNdot --  0x0800  \n
+        - deltaA    --  0x1000  \n
+        - adot      --  0x2000  \n
+    */
+
+    float iscL1ca;
+    /**<   InterSignal Correction between L1ca Data and Pilot channels in milliseconds,
+           always zero for QZSS.
+       - Units -- milliseconds */
+
+    float iscL2c;
+    /**<   InterSignal Correction between L2c Data and Pilot channels in milliseconds.
+       - Units -- milliseconds */
+
+    float iscL5I5;
+    /**<   InterSignal Correction between L5I5 Data and Pilot channels in milliseconds.
+       - Units -- milliseconds */
+
+    float iscL5Q5;
+    /**<   InterSignal Correction between L5Q5 Data and Pilot channels in milliseconds.
+       - Units -- milliseconds    */
+
+    uint8_t alert;
+    /**<   Alert Bit Info (unitless). */
+
+    uint8_t uraNed0;
+    /**<   NED accuracy index (5 bits, unitless). */
+
+    uint8_t uraNed1;
+    /**<   NED accuracy change index (3 bits), UraNed1 = 1/2^N (m/s),
+           N=14 + UraNed1 index (unitless). */
+
+    uint8_t uraNed2;
+    /**<   NED accuracy change rate index (3 bits), UraNed2 = 1/2^N (m/s^2),
+           N=28 + UraNed2 index (unitless). */
+
+    double top;
+    /**<   Data predict time of week, 0-604500 sec.
+       - Units -- Seconds */
+
+    uint16_t topClock;
+    /**<   Data predict time of week (clock) , scale 300 seconds.
+       - Units -- Seconds */
+
+    uint32_t validityPeriod;
+    /**<   Validity Period in seconds.
+       - Units -- Seconds */
+
+    double deltaNdot;
+    /**<   Rate of Mean motion difference from computed value [semi-circle/sec^2] (unitless).
+       */
+
+    double deltaA;
+    /**<   Semi-Major Axis Difference At Reference Time [m].
+       - Units -- Meters */
+
+    double adot;
+    /**<   Change Rate In Semi-Major Axis [m/sec].
+       - Units -- Meters/seconds */
+};
+
 /* GPS Navigation Model Info */
 struct GpsEphemeris {
     GnssEphCommon commonEphemerisData;
@@ -3154,6 +3256,90 @@ struct GlonassEphemeris {
      *  - Units: Days */
 };
 
+/** BDS extended ephemeris data validity flags */
+#define GNSS_BDS_EXT_EPH_ISC_B2A_VALID 0x00000001
+#define GNSS_BDS_EXT_EPH_ISC_B1C_VALID 0x00000002
+#define GNSS_BDS_EXT_EPH_TGD_B2A_VALID 0x00000004
+#define GNSS_BDS_EXT_EPH_TGD_B1C_VALID 0x00000008
+#define GNSS_BDS_EXT_EPH_SV_TYPE_VALID 0x00000010
+#define GNSS_BDS_EXT_EPH_VALIDITY_PERIOD 0x00000020
+#define GNSS_BDS_EXT_EPH_INTEGRITY_FLAGS 0x00000040
+#define GNSS_BDS_EXT_EPH_DELTA_NDOT_VALID 0x00000080
+#define GNSS_BDS_EXT_EPH_DELTAA_VALID 0x00000100
+#define GNSS_BDS_EXT_EPH_ADOT_VALID 0x00000200
+
+/** BDS Extended ephemeris struct */
+struct BdsExtendedEphemeris {
+    uint16_t gnssSvId;
+    /**<   GNSS SV ID. \n
+       Range:\
+       - GPS --     1 to 32 \n
+       - QZSS --    193 to 197 \n
+       - BDS --     201 to 263 \n
+       - Galileo -- 301 to 336 \n
+       - NavIC --   401 to 420 \n
+    */
+
+    uint32_t validityMask;
+    /**<   Specifies validity of all the fields.  \n
+        - iscB2a -- 0x0001   \n
+        - iscB1c -- 0x0002  \n
+        - tgdB2a -- 0x0004   \n
+        - tgdB1c -- 0x0008  \n
+        - svType -- 0x0010   \n
+        - validityPeriod  -- 0x0020  \n
+        - integrityFlags -- 0x0040   \n
+        - deltaNdot  -- 0x0080  \n
+        - deltaA -- 0x0100   \n
+        - adot  -- 0x0200  \n
+    */
+    float iscB2a;
+    /**<   InterSignal Correction between B2a Data and Pilot channels in milliseconds.
+       - Units -- milliseconds */
+
+    float iscB1c;
+    /**<   InterSignal Correction between B1c Data and Pilot channels in milliseconds. \n
+       - Units -- milliseconds */
+
+    float tgdB2a;
+    /**<   Time of Group Delay For B2a in milliseconds.
+       - Units -- milliseconds */
+
+    float tgdB1c;
+    /**<   Time of Group Delay For B1C in milliseconds.
+       - Units -- milliseconds */
+
+    uint8_t svType;
+    /**<   Sv Type GEO / MEO / IGSO (Unitless). */
+
+    uint32_t validityPeriod;
+    /**   Validity Period in seconds.
+       - Units -- Seconds */
+
+    uint8_t integrityFlags;
+    /** Satellite Integrity Flags consists data integrity Flag(DIF),
+     *  Signal Integrity Flag(SIF), Accuracy Integrity Flag (AIF).
+     *  Values:
+     *  - b0 - AIF, The signal is Valid(0) or Invalid (1).
+     *  - b1 - SIF, The signal is Normal(0) or Abnormal (1).
+     *  - b2 - DIF, The error of message parameters in this signal does not
+     *  exceeds the prediction accuracy (0)/ Exceeds the prediction accuracy (1).
+     *  - b3 - B1I, ephemeris health (unitless).
+     */
+
+    double deltaNdot;
+    /**<   Rate of Mean motion difference from computed value [semi-circle/sec^2] (unitless).
+     */
+
+    double deltaA;
+    /**<   Semi-Major Axis Difference At Reference Time [m]. \n
+       - Units -- Meters */
+
+    double adot;
+    /**<   Change Rate In Semi-Major Axis [m/sec]. \
+       - Units -- Meters/seconds */
+};
+
 /* BDS Navigation Model Info */
 struct BdsEphemeris {
 
@@ -3261,6 +3447,15 @@ struct NavicEphemeris {
 struct GpsEphemerisResponse {
     uint16_t numOfEphemeris;
     GpsEphemeris gpsEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
+
+    /**  Ephemeris Signal Source Type (Unitless). */
+    bool validDataSourceSignal;
+    Gnss_LocSignalEnumType dataSourceSignal;
+
+    uint16_t numOfExtendedEphemeris;
+    /** Extended Ephemeris data */
+    bool validExtendedEphData;
+    GpsExtendedEphemeris gpsExtEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
 };
 
 /** GLONASS Navigation model for each SV */
@@ -3273,6 +3468,15 @@ struct GlonassEphemerisResponse {
 struct BdsEphemerisResponse {
     uint16_t numOfEphemeris;
     BdsEphemeris bdsEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
+
+    /**  Ephemeris Signal Source Type (Unitless). */
+    bool validDataSourceSignal;
+    Gnss_LocSignalEnumType dataSourceSignal;
+
+    uint16_t numOfExtendedEphemeris;
+    /** Extended Ephemeris data */
+    bool validExtendedEphData;
+    BdsExtendedEphemeris bdsExtEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
 };
 
 /** GALILEO Navigation model for each SV */
@@ -3285,6 +3489,16 @@ struct GalileoEphemerisResponse {
 struct QzssEphemerisResponse {
     uint16_t numOfEphemeris;
     GpsEphemeris qzssEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
+
+    /**  Ephemeris Signal Source Type (Unitless). */
+    bool validDataSourceSignal;
+    Gnss_LocSignalEnumType dataSourceSignal;
+
+    uint16_t numOfExtendedEphemeris;
+    /** Extended Ephemeris data */
+    bool validExtendedEphData;
+    GpsExtendedEphemeris qzssExtEphemerisData[GNSS_EPHEMERIS_LIST_MAX_SIZE_V02];
+
 };
 /** NAVIC Navigation model for each SV */
 struct NavicEphemerisResponse {
