@@ -4856,9 +4856,7 @@ GnssAdapter::reportPosition(const UlpLocation& ulpLocation,
                     engLocationsInfo[1] = locationInfo;
                     it->second.engineLocationsInfoCb(2, engLocationsInfo);
                 } else if (nullptr != it->second.trackingCb) {
-                    it->second.trackingCb(locationInfo.location);
-                } else if (reportToAnyClient) {
-                    if (nullptr != it->second.trackingCb) {
+                    if (reportToAnyClient) {
                         cbRunnables.emplace_back([ cb=it->second.trackingCb ] (Location location) {
                             cb(location);
                         });

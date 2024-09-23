@@ -54,7 +54,6 @@ using measurement_corrections::aidl::implementation::MeasurementCorrectionsInter
 using ::android::hardware::gnss::visibility_control::aidl::implementation::GnssVisibilityControl;
 
 static Gnss* sGnss;
-static gnssStatusCb sGnssStatusCbRef = nullptr;
 void gnssServiceDied(void* cookie) {
     LOC_LOGe("IGnssCallback AIDL service died");
     Gnss* iface = static_cast<Gnss*>(cookie);
@@ -79,13 +78,7 @@ ScopedAStatus Gnss::setCallback(const shared_ptr<IGnssCallback>& callback) {
     }
     mMutex.unlock();
 
-    //Send the gps enable signal
-    notifyGnssStatus();
-    if (nullptr != sGnssStatusCbRef) {
-        updateFlpCallbacksIfOpen();
-    } else {
-        mApi.gnssUpdateCallbacks(callback);
-    }
+    mApi.gnssUpdateCallbacks(callback);
     mApi.gnssEnable(LOCATION_TECHNOLOGY_TYPE_GNSS);
     mApi.requestCapabilities();
 
@@ -95,19 +88,6 @@ ScopedAStatus Gnss::setCallback(const shared_ptr<IGnssCallback>& callback) {
 ScopedAStatus Gnss::close() {
     mApi.gnssStop();
     mApi.gnssDisable();
-    // sGnssStatusCbRef will be NULL in case of Android OS,
-    // we need to retain mGnssCallback* for Andorid, for SUPL ES.
-    // When location is disabled, GPS locked,
-    // we need a way to callback to AFW to request for DBH.
-
-    // sGnssStatusCbRef will be NOT be NULL in case of non-Android OS,
-    // in such case we don't want to retain the mGnssCallback*, as DBH is
-    // handled internally, hence making below references as nullptr.
-    if (nullptr != sGnssStatusCbRef) {
-        mGnssCallback = nullptr;
-        //Send gnss disable signal
-        notifyGnssStatus();
-    }
     return ScopedAStatus::ok();
 }
 
@@ -134,7 +114,6 @@ Gnss::~Gnss() {
     handleAidlClientSsr();
     mApi.destroy();
     sGnss = nullptr;
-    sGnssStatusCbRef = nullptr;
 }
 
 void Gnss::handleAidlClientSsr() {
@@ -142,7 +121,7 @@ void Gnss::handleAidlClientSsr() {
         AIBinder_unlinkToDeath(mGnssCallback->asBinder().get(), mDeathRecipient, this);
         mGnssCallback = nullptr;
     }
-    close();
+    mApi.gnssStop();
 }
 
 ILocationControlAPI* Gnss::getLocationControlApi() {
@@ -281,11 +260,6 @@ ScopedAStatus Gnss::deleteAidingData(IGnss::GnssAidingData aidingDataFlags) {
     mApi.gnssDeleteAidingData(aidingDataFlags);
     return ScopedAStatus::ok();
 }
-void Gnss::updateFlpCallbacksIfOpen() {
-    if (nullptr != mGnssCallback && nullptr != sGnssStatusCbRef) {
-        mApi.gnssUpdateFlpCallbacks();
-    }
-}
 
 void Gnss::odcpiRequestCb(const OdcpiRequestInfo& request) {
     ENTRY_LOG_CALLFLOW();
@@ -366,20 +340,16 @@ ScopedAStatus Gnss::getExtensionGnssMeasurement(
     return ScopedAStatus::ok();
 }
 
-void Gnss::notifyGnssStatus() {
-    if (nullptr != sGnssStatusCbRef) {
-        sGnssStatusCbRef(mGnssCallback != nullptr);
-    }
-}
-
 // Method that will register gnssStatusCallback,
 // only if the host FW is non-AFW and native NLP library
 // is available.
-void registerGnssStatusCallback(gnssStatusCb in) {
-    sGnssStatusCbRef = in;
-    if (nullptr != sGnssStatusCbRef && sGnss != nullptr) {
-        sGnss->updateFlpCallbacksIfOpen();
-        sGnss->notifyGnssStatus();
+void registerGnssStatusCallback(std::function<void(bool)> gnssCb, std::function<void(bool)> nlpCb) {
+    LOC_LOGd("registerGnssStatusCallback");
+    if (nullptr != gnssCb && nullptr != nlpCb && sGnss != nullptr) {
+        GnssAPIClient::sGnssStatusCb = gnssCb;
+        GnssAPIClient::sNlpRequestCb = nlpCb;
+        GnssAPIClient::sFlpRequestAllowed = true;
+        gnssCb(sGnss->isGnssCbValid());
     } else {
         LOC_LOGe("Failed to register!!!");
     }

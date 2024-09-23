@@ -65,6 +65,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LOG_NDEBUG 0
 #define LOG_TAG "LocSvc_GnssAPIClient"
 #define SINGLE_SHOT_MIN_TRACKING_INTERVAL_MSEC (590 * 60 * 60 * 1000) // 590 hours
+#define FINAL_GNSS_FIX_ACCURACY_THRESHOLD 10000
 #include <log_util.h>
 #include <loc_cfg.h>
 #include <fstream>
@@ -155,6 +156,10 @@ static void convertGnssSignalType(const GnssCapabNotification& in,
     }
 }
 
+std::function<void(bool)> GnssAPIClient::sNlpRequestCb = nullptr;
+std::function<void(bool)> GnssAPIClient::sGnssStatusCb = nullptr;
+bool GnssAPIClient::sFlpRequestAllowed = false;
+
 GnssAPIClient::GnssAPIClient(const shared_ptr<IGnssCallback>& gpsCb) :
     LocationAPIClientBase(),
     mControlClient(new LocationAPIControlClient()),
@@ -164,6 +169,7 @@ GnssAPIClient::GnssAPIClient(const shared_ptr<IGnssCallback>& gpsCb) :
     mSvStatusEnabled(false),
     mNmeaEnabled(false),
     mSignalTypeCbExpected(false),
+    mIsNlpActive(false),
     mGnssCbIface(gpsCb) {
     LOC_LOGd("]: (%p)", &gpsCb);
     initLocationOptions();
@@ -201,6 +207,7 @@ void GnssAPIClient::setCallbacks() {
     LocationCallbacks locationCallbacks;
     memset(&locationCallbacks, 0, sizeof(LocationCallbacks));
     locationCallbacks.size = sizeof(LocationCallbacks);
+    mTrackingOptions.qualityLevelAccepted = QUALITY_HIGH_ACCU_FIX_ONLY;
 
     locationCallbacks.engineLocationsInfoCb = nullptr;
     locationCallbacks.engineLocationsInfoCb = [this](uint32_t count,
@@ -246,9 +253,22 @@ void GnssAPIClient::gnssUpdateCallbacks(const shared_ptr<IGnssCallback>& gpsCb) 
     }
 }
 
-void GnssAPIClient::gnssUpdateFlpCallbacks() {
-    if (mGnssCbIface != nullptr) {
+//This function is only used for KaiOS 4.0 to select GNSS or FLP tracking session
+//based on accuracy
+void GnssAPIClient::updateCallbacksByAccuracy(uint32_t preferredAccuracyMeters) {
+    LOC_LOGd("updateCallbacksByAccuracy, accuracy: %d", preferredAccuracyMeters);
+    if (preferredAccuracyMeters >= FINAL_GNSS_FIX_ACCURACY_THRESHOLD) {
         setFlpCallbacks();
+        if (nullptr != sNlpRequestCb && !mIsNlpActive) {
+            mIsNlpActive = true;
+            sNlpRequestCb(mIsNlpActive);
+        }
+    } else {
+        setCallbacks();
+        if (nullptr != sNlpRequestCb && mIsNlpActive) {
+            mIsNlpActive = false;
+            sNlpRequestCb(mIsNlpActive);
+        }
     }
 }
 
@@ -275,6 +295,10 @@ bool GnssAPIClient::gnssStop() {
     mTracking = false;
     mMutex.unlock();
     locAPIStopTracking();
+    if (nullptr != sNlpRequestCb && mIsNlpActive) {
+        mIsNlpActive = false;
+        sNlpRequestCb(mIsNlpActive);
+    }
     return true;
 }
 
@@ -299,6 +323,10 @@ bool GnssAPIClient::gnssSetPositionMode(IGnss::GnssPositionMode mode,
             (int)mode, (int)recurrence, minIntervalMs, preferredAccuracyMeters,
             preferredTimeMs, (int)powerMode, timeBetweenMeasurement);
     bool retVal = true;
+
+    if (sFlpRequestAllowed) {
+        updateCallbacksByAccuracy(preferredAccuracyMeters);
+    }
 
     if (0 == minIntervalMs) {
         minIntervalMs = 1000;
@@ -406,6 +434,9 @@ void GnssAPIClient::gnssEnable(LocationTechnologyType techType) {
         return;
     }
     mControlClient->locAPIEnable(techType);
+    if (nullptr != sGnssStatusCb) {
+        sGnssStatusCb(true);
+    }
 }
 
 void GnssAPIClient::gnssDisable() {
@@ -415,6 +446,9 @@ void GnssAPIClient::gnssDisable() {
     }
     mSignalTypeCbExpected = false;
     mControlClient->locAPIDisable();
+    if (nullptr != sGnssStatusCb) {
+        sGnssStatusCb(false);
+    }
 }
 
 void GnssAPIClient::gnssConfigurationUpdate(const GnssConfig& gnssConfig) {
@@ -537,6 +571,17 @@ void GnssAPIClient::onTrackingCb(const Location& location) {
 
     if (!isTracking) {
         return;
+    }
+
+    //For KaiOS 4.0, stop NLP when final fix is received, resume NLP when fix is not final
+    if (nullptr != sNlpRequestCb && mIsNlpActive && location.sessionStatus == LOC_SESS_SUCCESS) {
+        mIsNlpActive = false;
+        sNlpRequestCb(mIsNlpActive);
+    }
+
+    if (nullptr != sNlpRequestCb && !mIsNlpActive && location.sessionStatus != LOC_SESS_SUCCESS) {
+        mIsNlpActive = true;
+        sNlpRequestCb(mIsNlpActive);
     }
 
     if (gnssCbIface != nullptr) {
