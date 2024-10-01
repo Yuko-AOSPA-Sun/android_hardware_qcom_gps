@@ -695,14 +695,16 @@ static uint32_t loc_nmea_generate_GSA(const UlpLocation &location,
     uint32_t svIdOffset = sv_meta_p->svIdOffset;
     uint64_t mask = sv_meta_p->mask;
 
+    // for non-glo, sv id need to start at 0 in GSA sentence
     if (!(sv_meta_p->svTypeMask & (1 << GNSS_SV_TYPE_GLONASS))) {
         svIdOffset = 0;
     }
 
     for (uint8_t i = 1; mask > 0 && svUsedCount < 64; i++)
     {
-        if (mask & 1)
+        if (mask & 1) {
             svUsedList[svUsedCount++] = i + svIdOffset;
+        }
         mask = mask >> 1;
     }
 
@@ -852,9 +854,6 @@ static void loc_nmea_generate_GSV(const GnssSvNotification &svNotify,
         return;
     }
 
-    if ((1 << GNSS_SV_TYPE_GLONASS) & sv_meta_p->svTypeMask) {
-        svIdOffset = 0;
-    }
     svNumber = 1;
     sentenceNumber = 1;
     sentenceCount = svCount / 4 + (svCount % 4 != 0);
@@ -877,10 +876,13 @@ static void loc_nmea_generate_GSV(const GnssSvNotification &svNotify,
 
         for (int i=0; (svNumber <= svNotify.count) && (i < 4);  svNumber++)
         {
+            GnssSvType svType = svNotify.gnssSvs[svNumber - 1].type;
+            uint16_t   svId   = svNotify.gnssSvs[svNumber - 1].svId;
             GnssSignalTypeMask signalType = svNotify.gnssSvs[svNumber-1].gnssSignalTypeMask;
+
             if (0 == signalType) {
                 // If no signal type in report, it means default L1,G1,E1,B1I
-                switch (svNotify.gnssSvs[svNumber - 1].type)
+                switch (svType)
                 {
                     case GNSS_SV_TYPE_GPS:
                         signalType = GNSS_SIGNAL_GPS_L1CA;
@@ -910,21 +912,30 @@ static void loc_nmea_generate_GSV(const GnssSvNotification &svNotify,
                 }
             }
 
-            if ((sv_meta_p->svTypeMask & (1 << svNotify.gnssSvs[svNumber - 1].type)) &&
+            if ((sv_meta_p->svTypeMask & (1 << svType)) &&
                     sv_meta_p->signalId == convert_signalType_to_signalId(signalType))
             {
                 svIdOffset = sv_meta_p->svIdOffset;
-                if (GNSS_SV_TYPE_SBAS == svNotify.gnssSvs[svNumber - 1].type) {
-                    svIdOffset = SBAS_SV_ID_OFFSET;
+
+                if (GNSS_SV_TYPE_GLONASS == svType) {
+                    // For GLO, sv id is of PRN in range of [65, 96]
+                    svIdOffset = 0;
+                } else if (GNSS_SV_TYPE_SBAS == svType) {
+                    // only process GPS SBAS
+                    if (svId >= 120 && svId <= 158) {
+                        svIdOffset = SBAS_SV_ID_OFFSET;
+                    } else {
+                        continue;
+                    }
                 }
-                if (GNSS_SV_TYPE_GLONASS == svNotify.gnssSvs[svNumber - 1].type &&
-                    GLO_SV_PRN_SLOT_UNKNOWN == svNotify.gnssSvs[svNumber - 1].svId) {
+
+                if ((GNSS_SV_TYPE_GLONASS == svType) && (GLO_SV_PRN_SLOT_UNKNOWN == svId)) {
                     length = snprintf(pMarker, lengthRemaining, ",,%02d,%03d,",
                         (int)(0.5 + svNotify.gnssSvs[svNumber - 1].elevation), //float to int
                         (int)(0.5 + svNotify.gnssSvs[svNumber - 1].azimuth)); //float to int
                 } else {
                     length = snprintf(pMarker, lengthRemaining, ",%02d,%02d,%03d,",
-                        svNotify.gnssSvs[svNumber - 1].svId - svIdOffset,
+                                      svId - svIdOffset,
                         (int)(0.5 + svNotify.gnssSvs[svNumber - 1].elevation), //float to int
                         (int)(0.5 + svNotify.gnssSvs[svNumber - 1].azimuth)); //float to int
                 }
