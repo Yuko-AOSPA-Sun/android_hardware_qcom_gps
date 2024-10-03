@@ -135,6 +135,7 @@ public :
     bool getXtraStatus(uint32_t sessionId);
     bool registerXtraStatusUpdate(uint32_t sessionId, bool registerUpdate);
     bool updateXtraDataDeletion();
+    bool updateXtraUserConsent(bool userConsent);
     bool set3rdPartyNtnCapability(bool enabled);
 
 private:

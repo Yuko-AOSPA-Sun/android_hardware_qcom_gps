@@ -155,14 +155,13 @@ public:
             GnssConfig gnssConfig = {};
             gnssConfig.size = sizeof(gnssConfig);
             gnssConfig.flags = GNSS_CONFIG_FLAGS_XTRA_STATUS_BIT;
-            sscanf(data, "%*s %d %d %d %d %d %63s", &sessionId, &updateType,
+            sscanf(data, "%*s %d %d %d %d %d %63s %d", &sessionId, &updateType,
                    (int *)&gnssConfig.xtraStatus.featureEnabled,
                    &gnssConfig.xtraStatus.xtraDataStatus,
                    &gnssConfig.xtraStatus.xtraValidForHours,
-                   &downloadReason[0]);
+                   &downloadReason[0], (int *)&gnssConfig.xtraStatus.userConsentStatus);
             std::string lastDownloadReason((char *) &downloadReason[0]);
             gnssConfig.xtraStatus.lastDownloadReasonCode = lastDownloadReason;
-
             mXSSO.mAdapter->reportGnssConfigEvent(sessionId, gnssConfig);
         } else if (!STRNCMP(data, "xtraMpDisabled")) {
             mXSSO.mAdapter->reportXtraMpDisabledEvent();
@@ -620,4 +619,13 @@ void XtraSystemStatusObserver::notify(const unordered_set<IDataItemCore*>& dlist
         }
     };
     mMsgTask->sendMsg(new (nothrow) HandleOsObserverUpdateMsg(this, dlist));
+}
+
+bool XtraSystemStatusObserver::updateXtraUserConsent(bool userConsent){
+    stringstream ss;
+    ss << "XtraEndUserConsent" << endl;
+    ss << (userConsent ? 1 : 0) << endl;
+    string s = ss.str();
+    LOC_LOGd("XtraEndUserConsent: %s", s.c_str());
+    return ( LocIpc::send(*mXtraSender, (const uint8_t*)s.data(), s.size()) );
 }

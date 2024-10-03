@@ -633,6 +633,7 @@ public:
     uint32_t configMerkleTreeCommand(const char * merkleTreeConfigBuffer, int bufferLength);
     uint32_t configOsnmaEnablementCommand(bool enable);
     uint32_t gnssInjectMmfDataCommand(const GnssMapMatchedData& data);
+    uint32_t gnssInjectXtraUserConsentCommand(const bool xtraUserConsent);
     void set3rdPartyNtnCapabilityCommand(bool isCapable);
     void getNtnConfigSignalMaskCommand();
     void setNtnConfigSignalMaskCommand(GnssSignalTypeMask gpsSignalTypeConfigMask);

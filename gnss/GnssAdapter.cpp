@@ -8512,6 +8512,42 @@ GnssAdapter::initLocGlinkProxy() {
     return locGlinkLoadSuccessful;
 }
 
+uint32_t GnssAdapter::gnssInjectXtraUserConsentCommand(const bool xtraUserConsent) {
+    // generated session id will be none-zero
+    uint32_t sessionId = generateSessionId();
+    LOC_LOGd("session id %u", sessionId);
+
+    struct MsgInjectXtraUserConsent : public LocMsg {
+        GnssAdapter&       mAdapter;
+        uint32_t           mSessionId;
+        const bool& mXtraUserConsent;
+
+        inline MsgInjectXtraUserConsent(GnssAdapter& adapter,
+                                 uint32_t sessionId,
+                                 const bool& userConsent) :
+            LocMsg(),
+            mAdapter(adapter),
+            mSessionId(sessionId),
+            mXtraUserConsent(userConsent) {}
+        inline virtual void proc() const {
+            LocationError err = LOCATION_ERROR_NOT_SUPPORTED;
+            if (mAdapter.mMpXtraEnabled == false) {
+                 mAdapter.reportResponse(LOCATION_ERROR_NOT_SUPPORTED, mSessionId);
+            } else {
+                if (true == mAdapter.mXtraObserver.updateXtraUserConsent(mXtraUserConsent)) {
+                    mAdapter.reportResponse(LOCATION_ERROR_SUCCESS, mSessionId);
+                } else {
+                    mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
+                }
+            }
+            mAdapter.reportResponse(err, mSessionId);
+        }
+    };
+
+    sendMsg(new MsgInjectXtraUserConsent(*this, sessionId, xtraUserConsent));
+    return sessionId;
+}
+
 /* ==== Eng Hub Proxy ================================================================= */
 /* ======== UTILITIES ================================================================= */
 void
