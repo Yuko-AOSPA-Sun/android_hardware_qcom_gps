@@ -710,6 +710,12 @@ typedef struct {
      *  Units -- Seconds */
     uint8_t leapSecondsUnc;
 
+    /** Current reporting interval. Intervals at which GNSS engine is
+     *  delivering position reports. It is minimum of all clients
+     *  requesting position reports.
+     *  Unit - milli-seconds*/
+    uint32_t posReportingInterval;
+
     /** helper function to check sanity of accurate time */
     bool isReportTimeAccurate() const {
         return ((gnssSystemTime.hasAccurateGpsTime() == true) &&
