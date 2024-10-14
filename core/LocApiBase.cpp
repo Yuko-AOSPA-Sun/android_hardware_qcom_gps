@@ -1122,11 +1122,13 @@ int64_t RealtimeEstimator::getElapsedRealtimeQtimer(int64_t qtimerTicksAtOrigin)
 }
 
 void RealtimeEstimator::saveGpsTimeAndQtimerPairInPvtReport(
-        const GpsLocationExtended& locationExtended) {
+        const GpsLocationExtended& locationExtended,
+        enum loc_sess_status status) {
 
-    // Use GPS timestamp and qtimer tick for 1Hz PVT report for association
+    // Use GPS timestamp and qtimer tick for 1Hz PVT report or Final fixes for association
     if (locationExtended.isReportTimeAccurate() &&
-            (locationExtended.gnssSystemTime.u.gpsSystemTime.systemMsec % 1000 == 0)) {
+            ((locationExtended.gnssSystemTime.u.gpsSystemTime.systemMsec % 1000 == 0) ||
+             (LOC_SESS_SUCCESS == status))) {
         LOC_LOGv("save time association from PVT report with gps time %u %u, "
                  "qtimer %" PRIi64 " %f ",
                  locationExtended.gnssSystemTime.u.gpsSystemTime.systemWeek,
