@@ -1049,6 +1049,9 @@ enum ulp_gnss_sv_measurement_valid_flags{
 #define ULP_GNSS_SV_POLY_BIT_POLYCOEFF_XYZ          (0x10000000000)
 #define ULP_GNSS_SV_POLY_BIT_POLYCOEFF_CLKBIAS      (0x20000000000)
 #define ULP_GNSS_SV_POLY_BIT_POLY_DURATION          (0x40000000000)
+#define ULP_GNSS_SV_POLY_BIT_NAVIC_TGD_L1           (0x80000000000)
+#define ULP_GNSS_SV_POLY_BIT_NAVIC_ISC_L1D          (0x100000000000)
+#define ULP_GNSS_SV_POLY_BIT_NAVIC_ISC_L1P          (0x200000000000)
 
 typedef enum
 {
@@ -1441,7 +1444,7 @@ typedef uint64_t GpsSvMeasHeaderFlags;
 #define GNSS_SV_MEAS_HEADER_HAS_REF_COUNT_TICKS_UNC           0x1000000000
 #define GNSS_SV_MEAS_HEADER_HAS_BDSB1IB2BI_TIME_BIAS          0x2000000000
 #define GNSS_SV_MEAS_HEADER_HAS_DWELL_ALIGN_TIME_MSEC         0x4000000000
-
+#define GNSS_SV_MEAS_HEADER_HAS_NAVICL5L1_TIME_BIAS           0x8000000000
 
 typedef struct
 {
@@ -1473,6 +1476,8 @@ typedef struct
     Gnss_InterSystemBiasStructType              gloG1G2TimeBias;
     Gnss_InterSystemBiasStructType              bdsB1iB1cTimeBias;
     Gnss_InterSystemBiasStructType              galE1E5bTimeBias;
+    /** Intra System Time Bias between NAVIC L5 and L1 signals */
+    Gnss_InterSystemBiasStructType              navicL5L1TimeBias;
 
     GnssSystemTimeStructType                    gpsSystemTime;
     GnssSystemTimeStructType                    galSystemTime;
@@ -1656,7 +1661,48 @@ typedef struct {
           Note: N -- Polynomial Order Size as specified by polyOrder
     */
     double polyClockBias[GNSS_SV_POLY_CLKBIAS_COEFF_SIZE_MAX];
+
+    /* Time of Group Delay - NAVIC L1 */
+    /**<   Time of group delay -- NAVIC L1. \n
+        - Units -- Milliseconds
+    */
+    float navicTgdL1;
+
+    /**<   Intersignal correction between NAVIC S and L1 data channels. \n
+        - Units -- Milliseconds
+    */
+    float navicIscL1D;
+
+    /**<   Intersignal correction between NAVIC S and L1 Pilot channels. \n
+        - Units -- Milliseconds */
+    float navicIscL1P;
 } GnssSvPolynomial;
+
+typedef struct {
+    Gnss_LocSignalEnumType  signalType;
+    /**<   Specifies the satellite signal type for the ionospheric model Latitude Longitude limits.
+     */
+
+    float maxLonLimit;
+    /**<   Klobuchar Model Parameter Max Longitude Limit.\n
+      - Unit -- Degrees
+     */
+
+    float minLonLimit;
+    /**<   Klobuchar Model Parameter Min Longitude Limit.\n
+       - Unit -- Degrees
+     */
+
+    float maxLatLimit;
+    /**<   Klobuchar Model Parameter Max Latitude Limit.\n
+       - Unit -- Degrees
+     */
+
+    float minLatLimit;
+    /**<   Klobuchar Model Parameter Min Latitude Limit.\n
+       - Unit -- Degrees
+     */
+} GnssKlobucharIonoModelLimits;
 
 typedef struct {
     /** GPS System Time of the iono model report */
@@ -1713,6 +1759,10 @@ typedef struct {
          - Type: float
          - Unit: Seconds / Semi-Circle^3
     */
+    bool validKlobucharIonoModelLimits;
+    /**< Must be set to true if klobucharIonoModelLimits is being passed */
+    GnssKlobucharIonoModelLimits klobucharIonoModelLimits;
+    /*  Klobuchar Ionospheric Model Latitude and Longitude Limits */
 } GnssKlobucharIonoModel;
 
 typedef struct {
