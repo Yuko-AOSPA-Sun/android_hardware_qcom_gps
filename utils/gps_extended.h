@@ -81,7 +81,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif /* __cplusplus */
 
-
+/**Extended Data Blob max length */
+#define LOC_OEM_DRE_DATA_BLOB_SIZE (4096)
 
 struct LocPosMode
 {
@@ -709,6 +710,17 @@ typedef struct {
     /** Uncertainty for the GNSS leap second.
      *  Units -- Seconds */
     uint8_t leapSecondsUnc;
+
+    /** Current reporting interval. Intervals at which GNSS engine is
+     *  delivering position reports. It is minimum of all clients
+     *  requesting position reports.
+     *  Unit - milli-seconds*/
+    uint32_t posReportingInterval;
+
+    /** Must be set to # of elements in extendedData */
+    uint32_t extendedDataLen;
+    /**   Data blob payload  */
+    uint8_t extendedData[LOC_OEM_DRE_DATA_BLOB_SIZE];
 
     /** helper function to check sanity of accurate time */
     bool isReportTimeAccurate() const {

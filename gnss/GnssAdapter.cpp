@@ -94,7 +94,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEG2RAD    (M_PI / 180.0)
 #define PROCESS_NAME_ENGINE_SERVICE "engine-service"
 #define PROCESS_NAME_SAP_MAP        "hmacdaemon"
-#define MIN_TRACKING_INTERVAL (100) // 100 msec
+#define MIN_TRACKING_INTERVAL (MIN_GNSS_TRACKING_INTERVAL) // 100 msec
 #define NHZ_ENABLED_MIN_TRACKING_INTERVAL (100) // 100 msec
 #define NHZ_NOT_ENABLED_MIN_TRACKING_INTERVAL (1000) // 1 sec
 #define BILLION_NSEC (1000000000ULL)
@@ -1038,6 +1038,21 @@ GnssAdapter::convertLocationInfo(GnssLocationInfoNotification& out,
     if (GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC & locationExtended.flags) {
         out.flags |= LDT_GNSS_LOCATION_INFO_LEAP_SECONDS_UNC_BIT;
         out.leapSecondsUnc = locationExtended.leapSecondsUnc;
+    }
+
+    if (GPS_LOCATION_EXTENDED_HAS_REPORT_INTERVAL & locationExtended.flags) {
+        out.flags |= LDT_GNSS_LOCATION_INFO_REPORT_INTERVAL_BIT;
+        out.posReportingInterval = locationExtended.posReportingInterval;
+    }
+
+    if (GPS_LOCATION_EXTENDED_HAS_EXTENDED_DATA & locationExtended.flags) {
+        out.flags |= LDT_GNSS_LOCATION_INFO_EXTENDED_DATA_BIT;
+        out.extendedDataLen = locationExtended.extendedDataLen;
+        if (locationExtended.extendedDataLen <= sizeof(out.extendedData)) {
+            memscpy(out.extendedData, locationExtended.extendedDataLen,
+                    locationExtended.extendedData,
+                    locationExtended.extendedDataLen);
+        }
     }
 }
 
@@ -3266,11 +3281,9 @@ GnssAdapter::handleEngineUpEvent()
                 }
             }
 
-            //Release wake lock when modem SSR
-            if (mAdapter.mIsWakeLockActive) {
-                locReleaseWakeLock();
-                mAdapter.mIsWakeLockActive = false;
-            }
+            //Release wake lock when modem SSR or GNSS HAL process SSR
+            locReleaseWakeLock();
+            mAdapter.mIsWakeLockActive = false;
 
             mAdapter.gnssSecondaryBandConfigUpdate();
             // restart sessions only when Lock state is enabled and in power state resume
@@ -3680,6 +3693,24 @@ GnssAdapter::startTimeBasedTrackingMultiplex(LocationAPI* client, uint32_t sessi
     return reportToClientWithNoWait;
 }
 
+void GnssAdapter::acquireWakeLockBasedOnTBF(uint32_t tbfInMs) {
+    LOC_LOGd("DEBUG: mIsWakeLockActive: %d, minInterval: %d, "
+            "mWakeLockEnableTbfThreshold: %d",
+            mIsWakeLockActive, tbfInMs,
+            mWakeLockEnableTbfThreshold);
+    if (mIsWakeLockActive) {
+        if (tbfInMs > mWakeLockEnableTbfThreshold) {
+            locReleaseWakeLock();
+            mIsWakeLockActive = false;
+        }
+    } else if (tbfInMs <= mWakeLockEnableTbfThreshold) {
+        int ret = locAcquireWakeLock();
+        if (ret >= 0) {
+            mIsWakeLockActive = true;
+        }
+    }
+}
+
 void
 GnssAdapter::startTimeBasedTracking(LocationAPI* client, uint32_t sessionId,
         const TrackingOptions& trackingOptions)
@@ -3715,23 +3746,20 @@ GnssAdapter::startTimeBasedTracking(LocationAPI* client, uint32_t sessionId,
     TrackingOptions tempOptions(trackingOptions);
     if (!checkAndSetSPEToRunforNHz(tempOptions)) {
         mLocApi->startTimeBasedTracking(tempOptions, new LocApiResponse(*getContext(),
-                          [this, client, sessionId] (LocationError err) {
+                          [this, client, sessionId, tempOptions] (LocationError err) {
                 if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
                     LOCATION_ERROR_SUCCESS != err) {
                     eraseTrackingSession(client, sessionId);
+                    locReleaseWakeLock();
+                    mIsWakeLockActive = false;
                 } else {
                     checkUpdateDgnssNtrip(false);
+                    acquireWakeLockBasedOnTBF(tempOptions.minInterval);
                 }
 
                 reportResponse(client, err, sessionId);
             }
         ));
-        if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
-            int ret = locAcquireWakeLock();
-            if (ret >= 0) {
-                mIsWakeLockActive = true;
-            }
-        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -3761,26 +3789,20 @@ GnssAdapter::updateTracking(LocationAPI* client, uint32_t sessionId,
     TrackingOptions tempOptions(updatedOptions);
     if (!checkAndSetSPEToRunforNHz(tempOptions)) {
         mLocApi->startTimeBasedTracking(tempOptions, new LocApiResponse(*getContext(),
-                          [this, client, sessionId, oldOptions] (LocationError err) {
+                          [this, client, sessionId, oldOptions, tempOptions] (LocationError err) {
                 if (ENGINE_LOCK_STATE_DISABLED != mLocApi->getEngineLockState() &&
                     LOCATION_ERROR_SUCCESS != err) {
                     // restore the old LocationOptions
                     saveTrackingSession(client, sessionId, oldOptions);
+                    //Release wakelock
+                    locReleaseWakeLock();
+                    mIsWakeLockActive = false;
+                } else {
+                    acquireWakeLockBasedOnTBF(tempOptions.minInterval);
                 }
                 reportResponse(client, err, sessionId);
             }
         ));
-        if (mIsWakeLockActive) {
-            if (tempOptions.minInterval > mWakeLockEnableTbfThreshold) {
-                locReleaseWakeLock();
-                mIsWakeLockActive = false;
-            }
-        } else if (tempOptions.minInterval <= mWakeLockEnableTbfThreshold) {
-            int ret = locAcquireWakeLock();
-            if (ret >= 0) {
-                mIsWakeLockActive = true;
-            }
-        }
     } else {
         reportResponse(client, LOCATION_ERROR_SUCCESS, sessionId);
     }
@@ -4080,11 +4102,9 @@ GnssAdapter::stopTracking(LocationAPI* client, uint32_t id)
             new LocApiResponse(*getContext(),
                                [this, client, id] (LocationError err) {
         reportResponse(client, err, id);
-    }));
-    if (mIsWakeLockActive) {
         locReleaseWakeLock();
         mIsWakeLockActive = false;
-    }
+    }));
 
     if (isDgnssNmeaRequired()) {
         mDgnssState &= ~DGNSS_STATE_NO_NMEA_PENDING;
@@ -6776,44 +6796,26 @@ void GnssAdapter::dataConnFailedCommand(AGpsExtType agpsType){
 }
 
 void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
+                                       const GnssSvType& in_constellation,
                                        const SystemStatusReports& in)
 {
     uint64_t sv_mask = 0ULL;
-    uint16_t svid_min = 0; // sv id start index in GnssDebugSatelliteInfo
-    uint16_t svid = 0;      // sv id
-    uint16_t svid_base = 0; // sv id base in the constellation
-    GnssSvType in_constellation;
+    uint32_t svid_min = 0;
+    uint32_t svid_num = 0;
+    uint32_t svid_idx = 0;
 
     uint64_t eph_health_good_mask = 0ULL;
     uint64_t eph_health_bad_mask = 0ULL;
     uint64_t server_perdiction_available_mask = 0ULL;
     float server_perdiction_age = 0.0f;
 
-    // extract each sv info from systemstatus report
-    for (uint32_t i=0; i<in.mNavData.back().mNavLen; i++) {
-        svid = in.mNavData.back().mNav[i].gnssSvId;
-
-        if (svid >= GPS_SV_ID_MIN && svid <= GPS_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_GPS;
-        } else if (svid >= GLO_SV_ID_MIN && svid <= GLO_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_GLONASS;
-        } else if (svid >= QZSS_SV_ID_MIN && svid <= QZSS_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_QZSS;
-        } else if (svid >= BDS_SV_ID_MIN && svid <= BDS_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_BEIDOU;
-        } else if (svid >= GAL_SV_ID_MIN && svid <= GAL_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_GALILEO;
-        } else if (svid >= NAVIC_SV_ID_MIN && svid <= NAVIC_SV_ID_MAX) {
-           in_constellation = GNSS_SV_TYPE_NAVIC;
-        } else {
-           continue;
-        }
-
         // set constellationi based parameters
         switch (in_constellation) {
         case GNSS_SV_TYPE_GPS:
             svid_min = GNSS_BUGREPORT_GPS_SV_ID_MIN;
-            svid_base = GPS_SV_ID_MIN;
+            svid_num = GPS_SV_NUM;
+            svid_idx = GPS_SV_INDEX_OFFSET;
+
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGpsGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGpsBadMask;
@@ -6825,7 +6827,9 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         case GNSS_SV_TYPE_GLONASS:
             svid_min = GNSS_BUGREPORT_GLO_SV_ID_MIN;
-            svid_base = GLO_SV_ID_MIN;
+            svid_num = GLO_SV_NUM;
+            svid_idx = GLO_SV_INDEX_OFFSET;
+
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGloGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGloBadMask;
@@ -6837,7 +6841,9 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         case GNSS_SV_TYPE_QZSS:
             svid_min = GNSS_BUGREPORT_QZSS_SV_ID_MIN;
-            svid_base = QZSS_SV_ID_MIN;
+            svid_num = QZSS_SV_NUM;
+            svid_idx = QZSS_SV_INDEX_OFFSET;
+
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mQzssGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mQzssBadMask;
@@ -6849,7 +6855,9 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         case GNSS_SV_TYPE_BEIDOU:
             svid_min = GNSS_BUGREPORT_BDS_SV_ID_MIN;
-            svid_base = BDS_SV_ID_MIN;
+            svid_num = BDS_SV_NUM;
+            svid_idx = BDS_SV_INDEX_OFFSET;
+
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mBdsGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mBdsBadMask;
@@ -6861,7 +6869,9 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         case GNSS_SV_TYPE_GALILEO:
             svid_min = GNSS_BUGREPORT_GAL_SV_ID_MIN;
-            svid_base = GAL_SV_ID_MIN;
+            svid_num = GAL_SV_NUM;
+            svid_idx = GAL_SV_INDEX_OFFSET;
+
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mGalGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mGalBadMask;
@@ -6873,7 +6883,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             break;
         case GNSS_SV_TYPE_NAVIC:
             svid_min = GNSS_BUGREPORT_NAVIC_SV_ID_MIN;
-            svid_base = NAVIC_SV_ID_MIN;
+            svid_num = NAVIC_SV_NUM;
+            svid_idx = NAVIC_SV_INDEX_OFFSET;
             if (!in.mSvHealth.empty()) {
                 eph_health_good_mask = in.mSvHealth.back().mNavicGoodMask;
                 eph_health_bad_mask  = in.mSvHealth.back().mNavicBadMask;
@@ -6887,23 +6898,24 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
             return;
         }
 
-        uint16_t sv_offset = svid - svid_base;
+    // extract each sv info from systemstatus report
+    for (uint32_t i=0; i<svid_num && (svid_idx+i)<SV_ALL_NUM; i++) {
 
         GnssDebugSatelliteInfo s = {};
         s.size = sizeof(s);
-        s.svid = svid_min + sv_offset;
+        s.svid = i + svid_min;
         s.constellation = in_constellation;
 
         if (!in.mNavData.empty()) {
-            s.mEphemerisType   = (GnssEphemerisType) in.mNavData.back().mNav[i].type;
-            s.mEphemerisSource = (GnssEphemerisSource) in.mNavData.back().mNav[i].src;
+            s.mEphemerisType   = in.mNavData.back().mNav[svid_idx+i].mType;
+            s.mEphemerisSource = in.mNavData.back().mNav[svid_idx+i].mSource;
         }
         else {
             s.mEphemerisType   = GNSS_EPH_TYPE_UNKNOWN;
             s.mEphemerisSource = GNSS_EPH_SOURCE_UNKNOWN;
         }
 
-        sv_mask = 0x1ULL << sv_offset;
+        sv_mask = 0x1ULL << i;
         if (eph_health_good_mask & sv_mask) {
             s.mEphemerisHealth = GNSS_EPH_HEALTH_GOOD;
         }
@@ -6915,7 +6927,8 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
         }
 
         if (!in.mNavData.empty()) {
-            s.ephemerisAgeSeconds =(float)(in.mNavData.back().mNav[i].age);
+            s.ephemerisAgeSeconds =
+                (float)(in.mNavData.back().mNav[svid_idx+i].mAgeSec);
         }
         else {
             s.ephemerisAgeSeconds = 0.0f;
@@ -6923,14 +6936,17 @@ void GnssAdapter::convertSatelliteInfo(std::vector<GnssDebugSatelliteInfo>& out,
 
         if (server_perdiction_available_mask & sv_mask) {
             s.serverPredictionIsAvailable = true;
+            s.serverPredictionAgeSeconds = server_perdiction_age;
         }
         else {
             s.serverPredictionIsAvailable = false;
+            s.serverPredictionAgeSeconds = 0.0;
         }
 
-        s.serverPredictionAgeSeconds = server_perdiction_age;
-
-        out.push_back(std::move(s));
+        if ((s.mEphemerisType != GNSS_EPH_TYPE_UNKNOWN) ||
+               (s.serverPredictionIsAvailable == true )) {
+            out.push_back(std::move(s));
+        }
     }
 
     return;
@@ -7030,10 +7046,14 @@ bool GnssAdapter::getDebugReport(GnssDebugReport& r)
     else {
         r.mTime.mValid = false;
     }
-    if (!reports.mNavData.empty()) {
-        // satellite info block
-        convertSatelliteInfo(r.mSatelliteInfo, reports);
-    }
+
+    // satellite info block
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GPS, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GLONASS, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_QZSS, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_BEIDOU, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_GALILEO, reports);
+    convertSatelliteInfo(r.mSatelliteInfo, GNSS_SV_TYPE_NAVIC, reports);
     LOC_LOGa("satellite=%zu", r.mSatelliteInfo.size());
 
     return true;

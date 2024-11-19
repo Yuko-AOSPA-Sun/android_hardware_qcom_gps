@@ -239,8 +239,11 @@ ScopedAStatus GnssConfiguration::setBlocklist(const vector<BlocklistedSource>& s
     GnssSvIdSource source = {};
     for (int idx = 0; idx < (int)sourceList.size(); idx++) {
         // Set blValid true if any one source is valid
-        blValid = setBlocklistedSource(source, sourceList[idx]) || blValid;
-        config.blacklistedSvIds.push_back(source);
+        // Only push the SV to blacklist if this SV is valid and can be blacklisted
+        if (setBlocklistedSource(source, sourceList[idx])) {
+           config.blacklistedSvIds.push_back(source);
+           blValid = true;
+        }
     }
 
     // Update configuration only if blValid is true
@@ -275,7 +278,8 @@ bool GnssConfiguration::setBlocklistedSource(GnssSvIdSource& copyToSource,
         break;
     case GnssConstellationType::QZSS:
         copyToSource.constellation = GNSS_SV_TYPE_QZSS;
-        svIdOffset = GNSS_SV_CONFIG_QZSS_INITIAL_SV_ID - 1;
+        // QZSS SV id is already sent within 183-206 per GnssSvInfo::svId
+        // so svIdOffset should remain 0.
         break;
     case GnssConstellationType::BEIDOU:
         copyToSource.constellation = GNSS_SV_TYPE_BEIDOU;

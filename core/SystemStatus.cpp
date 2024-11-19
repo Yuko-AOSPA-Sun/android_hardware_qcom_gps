@@ -156,7 +156,11 @@ void SystemStatusXoState::dump()
  SystemStatusRfAndParams
 ******************************************************************************/
 SystemStatusRfAndParams::SystemStatusRfAndParams(const GnssEngineDebugDataInfo& info) :
-    mJammedSignalsMask(info.jammedSignalsMask) {
+    mJammedSignalsMask(info.jammedSignalsMask),
+    mJammerGps(0),
+    mJammerGlo(0),
+    mJammerBds(0),
+    mJammerGal(0) {
 
     if (info.jammerInd.size() > 0) {
          mJammerGps = info.jammerInd[GNSS_LOC_SIGNAL_TYPE_GPS_L1CA];
@@ -479,21 +483,46 @@ void SystemStatusPdr::dump()
 ******************************************************************************/
 SystemStatusNavData::SystemStatusNavData(const GnssEngineDebugDataInfo& info)
 {
-   mNavLen = info.navDataLen;
-   for (uint32_t i=0; i<mNavLen; i++) {
-      mNav[i] = info.navData[i];
+   memset(mNav, 0, sizeof(mNav));
+   for (int i = 0; i < info.navDataLen; i++) {
+        GnssNavDataInfo navInfo  = info.navData[i];
+        int offset = 0;
+        if (0 == navInfo.gnssSvId) continue;
+        // GPS
+        if (navInfo.gnssSvId >= GPS_SV_ID_MIN && navInfo.gnssSvId <= GPS_SV_ID_MAX) {
+            offset = GPS_SV_INDEX_OFFSET + navInfo.gnssSvId - GPS_SV_ID_MIN;
+        }
+        // GLO
+        if (navInfo.gnssSvId >= GLO_SV_ID_MIN && navInfo.gnssSvId <= GLO_SV_ID_MAX) {
+            offset = GLO_SV_INDEX_OFFSET + navInfo.gnssSvId - GLO_SV_ID_MIN;
+        }
+        // BDS
+        if (navInfo.gnssSvId >= BDS_SV_ID_MIN && navInfo.gnssSvId <= BDS_SV_ID_MAX) {
+            offset = BDS_SV_INDEX_OFFSET + navInfo.gnssSvId - BDS_SV_ID_MIN;
+        }
+        // GAL
+        if (navInfo.gnssSvId >= GAL_SV_ID_MIN && navInfo.gnssSvId <= GAL_SV_ID_MAX) {
+            offset = GAL_SV_INDEX_OFFSET + navInfo.gnssSvId - GAL_SV_ID_MIN;
+        }
+        // QZSS
+        if (navInfo.gnssSvId >= QZSS_SV_ID_MIN && navInfo.gnssSvId <= QZSS_SV_ID_MAX) {
+            offset = QZSS_SV_INDEX_OFFSET + navInfo.gnssSvId - QZSS_SV_ID_MIN;
+        }
+        // Navic
+        if (navInfo.gnssSvId >= NAVIC_SV_ID_MIN && navInfo.gnssSvId <= NAVIC_SV_ID_MAX) {
+            offset = NAVIC_SV_INDEX_OFFSET + navInfo.gnssSvId - NAVIC_SV_ID_MIN;
+        }
+        mNav[offset].mType   = GnssEphemerisType(navInfo.type);
+        mNav[offset].mSource = GnssEphemerisSource(navInfo.src);
+        mNav[offset].mAgeSec = navInfo.age;
    }
 }
 
 bool SystemStatusNavData::equals(const SystemStatusItemBase& peer) {
-    if (mNavLen != ((const SystemStatusNavData&)peer).mNavLen) {
-       return false;
-    }
-    for (uint32_t i=0; i<mNavLen; i++) {
-        if ((mNav[i].gnssSvId != ((const SystemStatusNavData&)peer).mNav[i].gnssSvId) ||
-            (mNav[i].type != ((const SystemStatusNavData&)peer).mNav[i].type) ||
-            (mNav[i].src != ((const SystemStatusNavData&)peer).mNav[i].src) ||
-            (mNav[i].age != ((const SystemStatusNavData&)peer).mNav[i].age)) {
+    for (uint32_t i=0; i<SV_ALL_NUM; i++) {
+        if ((mNav[i].mType != ((const SystemStatusNavData&)peer).mNav[i].mType) ||
+            (mNav[i].mSource != ((const SystemStatusNavData&)peer).mNav[i].mSource) ||
+            (mNav[i].mAgeSec != ((const SystemStatusNavData&)peer).mNav[i].mAgeSec)) {
             return false;
         }
     }
@@ -504,9 +533,9 @@ void SystemStatusNavData::dump()
 {
     LOC_LOGV("NavData: u=%ld:%ld",
             mUtcTime.tv_sec, mUtcTime.tv_nsec);
-    for (uint32_t i=0; i<mNavLen; i++) {
-        LOC_LOGV("i=%d, svid=%d type=%d src=%d age=%d",
-            i, mNav[i].gnssSvId, mNav[i].type, mNav[i].src, mNav[i].age);
+    for (uint32_t i=0; i<SV_ALL_NUM; i++) {
+        LOC_LOGV("i=%d type=%d src=%d age=%d",
+            i, mNav[i].mType, mNav[i].mSource, mNav[i].mAgeSec);
     }
 }
 

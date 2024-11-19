@@ -506,6 +506,10 @@ typedef uint64_t GpsLocationExtendedFlags;
 #define GPS_LOCATION_EXTENDED_HAS_RAW_RTK_CORR_AGE_TIMESTAMP     0x800000000000000
 /** GpsLocationExtended has valid leapSecondsUnc */
 #define GPS_LOCATION_EXTENDED_HAS_LEAP_SECONDS_UNC               0x1000000000000000
+/** GpsLocationExtended has valid current reporting interval */
+#define GPS_LOCATION_EXTENDED_HAS_REPORT_INTERVAL                0x2000000000000000
+/** GpsLocationExtended has extendedData payload. */
+#define GPS_LOCATION_EXTENDED_HAS_EXTENDED_DATA                  0x4000000000000000
 
 typedef uint32_t LocNavSolutionMask;
 /* Bitmask to specify whether SBAS ionospheric correction is used  */
@@ -1436,6 +1440,8 @@ typedef uint64_t GpsSvMeasHeaderFlags;
 #define GNSS_SV_MEAS_HEADER_HAS_GALE1E5B_TIME_BIAS            0x800000000
 #define GNSS_SV_MEAS_HEADER_HAS_REF_COUNT_TICKS_UNC           0x1000000000
 #define GNSS_SV_MEAS_HEADER_HAS_BDSB1IB2BI_TIME_BIAS          0x2000000000
+#define GNSS_SV_MEAS_HEADER_HAS_DWELL_ALIGN_TIME_MSEC         0x4000000000
+
 
 typedef struct
 {
@@ -1503,6 +1509,10 @@ typedef struct
     /** DGNSS Ref station ID: 32bit number identifying the DGNSS
      *  ref station ID, if DGNSS was used for these measurements. */
     uint16_t                                    dgnssRefStationId;
+
+    /* Dwell Time Alignment
+     * Unit- Milli-seconds */
+    uint32_t dwellAlignTimeMsec;
 } GnssSvMeasurementHeader;
 
 typedef struct {
