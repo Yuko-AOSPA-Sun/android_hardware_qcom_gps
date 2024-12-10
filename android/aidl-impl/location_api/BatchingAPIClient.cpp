@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -147,6 +147,11 @@ int BatchingAPIClient::updateSessionOptions(const IGnssBatching::Options& opts) 
 
 int BatchingAPIClient::stopSession() {
     mMutex.lock();
+    if (mState != STARTED) {
+        LOC_LOGe("] Error Stop called without start");
+        mMutex.unlock();
+        return -1;
+    }
     mState = STOPPING;
     mMutex.unlock();
     LOC_LOGd("]: ");
