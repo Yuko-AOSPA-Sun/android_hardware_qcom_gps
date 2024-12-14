@@ -4432,7 +4432,7 @@ GnssAdapter::reportPositionEvent(const UlpLocation& ulpLocation,
 
             // save the association of GPS timestamp and qtimer tick cnt in PVT report
             mAdapter.mPositionElapsedRealTimeCal
-                    .saveGpsTimeAndQtimerPairInPvtReport(mLocationExtended);
+                    .saveGpsTimeAndQtimerPairInPvtReport(mLocationExtended, mStatus);
 
             // save sv used in fix and mb sv used in fix info from propagated report
             mAdapter.mGnssSvIdUsedInPosAvail = false;

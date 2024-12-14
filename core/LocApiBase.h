@@ -451,7 +451,8 @@ public:
     bool fillAdditionalTimestamps(const GpsLocationExtended& locationExtended,
                                       int64_t &elapsedTime, float & elpasedTimeUnc,
                                       uint64_t &gptpTime, bool &gPTPValidity);
-    void saveGpsTimeAndQtimerPairInPvtReport(const GpsLocationExtended& locationExtended);
+    void saveGpsTimeAndQtimerPairInPvtReport(const GpsLocationExtended& locationExtended,
+            enum loc_sess_status status);
     void saveGpsTimeAndQtimerPairInMeasReport(const GnssSvMeasurementSet& svMeasurementSet);
     static bool getCurrentTime(struct timespec& currentTime, int64_t& sinceBootTimeNanos);
 };
