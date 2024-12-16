@@ -777,6 +777,8 @@ enum GnssMeasurementsDataFlagsBits {
     GNSS_MEASUREMENTS_DATA_GNSS_SIGNAL_TYPE_BIT             = (1<<25),
     GNSS_MEASUREMENTS_DATA_GLO_FREQUENCY_BIT                = (1<<26),
     GNSS_MEASUREMENTS_DATA_BASEBAND_CARRIER_TO_NOISE_BIT    = (1<<27),
+    GNSS_MEASUREMENTS_DATA_MEAS_CODE_TYPE_BIT               = (1<<28),
+    GNSS_MEASUREMENTS_DATA_OTHER_MEAS_CODE_TYPE_BIT         = (1<<29),
 };
 
 typedef uint32_t GnssMeasurementsStateMask;
