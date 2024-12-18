@@ -254,7 +254,11 @@ GnssAdapter::GnssAdapter() :
     mNvParamMgr(NvParamMgr::getInstance()),
     mAppHash(""),
     m3GppSourceMask(QDGNSS_3GPP_SOURCE_UNKNOWN),
+#ifdef _ANDROID_
+    mNmeaReqEngTypeMask(LOC_REQ_ENGINE_SPE_BIT),
+#else
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_FUSED_BIT),
+#endif
     mResponseTimer(this, (LocationError)0, (uint32_t)0),
     mIsNtnStatusValid(false),
     mNtnSignalTypeConfigMask(GNSS_SIGNAL_GPS_L1CA|GNSS_SIGNAL_GPS_L5),
@@ -4982,10 +4986,13 @@ GnssAdapter::reportEnginePositions(unsigned int count,
                                     locationInfo[i]);
             }
 
+#ifndef _ANDROID_
+            //Only generate and report NMEA with engine position on Auto platforms
             reportPositionNmea(engLocation->location,
                            engLocation->locationExtended,
                            engLocation->sessionStatus,
                            engLocation->location.tech_mask);
+#endif
 
        }
 
