@@ -811,6 +811,20 @@ public:
     */
     virtual uint32_t configOsnmaEnablement(bool IsEnabled) override;
     virtual uint32_t gnssInjectMmfData(const GnssMapMatchedData& data) override;
+
+    /** @brief
+        API to support passing of End user consent to use XTRA services.
+        Clients should use the below API to pass End user intent.<br/>
+
+        @param
+        xtraUserConsent: Flag to convey end user intent
+                        <br/>
+
+        @return
+        A session id that will be returned in responseCallback to
+        match command with response.
+    */
+    virtual uint32_t configureUserConsentForXtra(const bool xtraUserConsent) override;
 };
 
 #endif /* LOCATIONAPI_H */

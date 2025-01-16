@@ -254,7 +254,11 @@ GnssAdapter::GnssAdapter() :
     mNvParamMgr(NvParamMgr::getInstance()),
     mAppHash(""),
     m3GppSourceMask(QDGNSS_3GPP_SOURCE_UNKNOWN),
+#ifdef _ANDROID_
+    mNmeaReqEngTypeMask(LOC_REQ_ENGINE_SPE_BIT),
+#else
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_FUSED_BIT),
+#endif
     mResponseTimer(this, (LocationError)0, (uint32_t)0),
     mIsNtnStatusValid(false),
     mNtnSignalTypeConfigMask(GNSS_SIGNAL_GPS_L1CA|GNSS_SIGNAL_GPS_L5),
@@ -4859,9 +4863,7 @@ GnssAdapter::reportPosition(const UlpLocation& ulpLocation,
                     engLocationsInfo[1] = locationInfo;
                     it->second.engineLocationsInfoCb(2, engLocationsInfo);
                 } else if (nullptr != it->second.trackingCb) {
-                    it->second.trackingCb(locationInfo.location);
-                } else if (reportToAnyClient) {
-                    if (nullptr != it->second.trackingCb) {
+                    if (reportToAnyClient) {
                         cbRunnables.emplace_back([ cb=it->second.trackingCb ] (Location location) {
                             cb(location);
                         });
@@ -4982,10 +4984,13 @@ GnssAdapter::reportEnginePositions(unsigned int count,
                                     locationInfo[i]);
             }
 
+#ifndef _ANDROID_
+            //Only generate and report NMEA with engine position on Auto platforms
             reportPositionNmea(engLocation->location,
                            engLocation->locationExtended,
                            engLocation->sessionStatus,
                            engLocation->location.tech_mask);
+#endif
 
        }
 
@@ -8513,6 +8518,42 @@ GnssAdapter::initLocGlinkProxy() {
 
     firstTime = false;
     return locGlinkLoadSuccessful;
+}
+
+uint32_t GnssAdapter::gnssInjectXtraUserConsentCommand(const bool xtraUserConsent) {
+    // generated session id will be none-zero
+    uint32_t sessionId = generateSessionId();
+    LOC_LOGd("session id %u", sessionId);
+
+    struct MsgInjectXtraUserConsent : public LocMsg {
+        GnssAdapter&       mAdapter;
+        uint32_t           mSessionId;
+        const bool& mXtraUserConsent;
+
+        inline MsgInjectXtraUserConsent(GnssAdapter& adapter,
+                                 uint32_t sessionId,
+                                 const bool& userConsent) :
+            LocMsg(),
+            mAdapter(adapter),
+            mSessionId(sessionId),
+            mXtraUserConsent(userConsent) {}
+        inline virtual void proc() const {
+            LocationError err = LOCATION_ERROR_NOT_SUPPORTED;
+            if (mAdapter.mMpXtraEnabled == false) {
+                 mAdapter.reportResponse(LOCATION_ERROR_NOT_SUPPORTED, mSessionId);
+            } else {
+                if (true == mAdapter.mXtraObserver.updateXtraUserConsent(mXtraUserConsent)) {
+                    mAdapter.reportResponse(LOCATION_ERROR_SUCCESS, mSessionId);
+                } else {
+                    mAdapter.reportResponse(LOCATION_ERROR_GENERAL_FAILURE, mSessionId);
+                }
+            }
+            mAdapter.reportResponse(err, mSessionId);
+        }
+    };
+
+    sendMsg(new MsgInjectXtraUserConsent(*this, sessionId, xtraUserConsent));
+    return sessionId;
 }
 
 /* ==== Eng Hub Proxy ================================================================= */
