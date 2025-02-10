@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -251,7 +251,6 @@ GnssAdapter::GnssAdapter() :
     mAddressRequestCb(nullptr),
     mHmacConfig(HMAC_CONFIG_UNKNOWN),
     mGnssCapabNotification{},
-    mNvParamMgr(NvParamMgr::getInstance()),
     mAppHash(""),
     m3GppSourceMask(QDGNSS_3GPP_SOURCE_UNKNOWN),
 #ifdef _ANDROID_
@@ -334,20 +333,22 @@ void GnssAdapter::restoreConfigFromNvm()
             LocMsg(),
             mAdapter(adapter) {}
         inline virtual void proc() const {
-            //Read GNSS VRP data
+            //restore Configuration parameters only when engine hub is loaded
+            if (false == mAdapter.mEngHubLoadSuccessful) {
+                LOC_LOGd("EHUB not enabled, return");
+                return;
+            }
             mAdapter.mLocConfigInfo.leverArmConfigInfo = mAdapter.readVrpDataFromNvm();
             LOC_LOGi("0x%x %f %f %f", mAdapter.mLocConfigInfo.leverArmConfigInfo.leverArmValidMask,
                 mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.forwardOffsetMeters,
                 mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.sidewaysOffsetMeters,
                 mAdapter.mLocConfigInfo.leverArmConfigInfo.gnssToVRP.upOffsetMeters);
             if (mAdapter.mLocConfigInfo.leverArmConfigInfo.leverArmValidMask) {
-                if (true == mAdapter.mEngHubLoadSuccessful) {
-                    if (false == mAdapter.mEngHubProxy->configLeverArm(
-                            mAdapter.mLocConfigInfo.leverArmConfigInfo)) {
-                        LOC_LOGe("configLeverArm Failed");
-                    } else {
-                        LOC_LOGd("configLeverArm Success");
-                    }
+                if (false == mAdapter.mEngHubProxy->configLeverArm(
+                        mAdapter.mLocConfigInfo.leverArmConfigInfo)) {
+                    LOC_LOGe("configLeverArm Failed");
+                } else {
+                    LOC_LOGd("configLeverArm Success");
                 }
             }
         }
@@ -365,8 +366,9 @@ LeverArmConfigInfo GnssAdapter::readVrpDataFromNvm()
     unsigned int size = sizeof(LeverArmConfigInfo);
     paramName = LocNvParams::getParamName(LocNvParams::LEVER_ARM_GNSS_TO_VRP);
     unsigned char* leverArmBlob = reinterpret_cast<unsigned char*>(&configInfo);
-    if ((nullptr != leverArmBlob) && (nullptr != mNvParamMgr)) {
-        errorCode = mNvParamMgr->getBlobParam(paramName, leverArmBlob, size);
+    NvParamMgr* nvParamMgr = NvParamMgr::getInstance();
+    if ((nullptr != leverArmBlob) && (nullptr != nvParamMgr)) {
+        errorCode = nvParamMgr->getBlobParam(paramName, leverArmBlob, size);
         if (NV_PARAM_ERR_NO_ERR == errorCode) {
             LeverArmConfigInfo* leverArmConfig =
                   reinterpret_cast<LeverArmConfigInfo*>(leverArmBlob);
@@ -374,6 +376,10 @@ LeverArmConfigInfo GnssAdapter::readVrpDataFromNvm()
                 configInfo = *leverArmConfig;
             }
         }
+    }
+    if (nvParamMgr) {
+        NvParamMgr::releaseInstance();
+        nvParamMgr = nullptr;
     }
     return configInfo;
 }
@@ -390,10 +396,15 @@ bool GnssAdapter::storeVrpData2Nvm(const LeverArmConfigInfo& configInfo)
         const char* paramName = NULL;
         nv_param_err_code errorCode = NV_PARAM_ERR_NO_ERR;
         unsigned int size = sizeof(LeverArmConfigInfo);
-        if (nullptr != mNvParamMgr) {
+        NvParamMgr* nvParamMgr = NvParamMgr::getInstance();
+        if (nullptr != nvParamMgr) {
             paramName = LocNvParams::getParamName(LocNvParams::LEVER_ARM_GNSS_TO_VRP);
-            errorCode = mNvParamMgr->saveBlobParam(paramName,
+            errorCode = nvParamMgr->saveBlobParam(paramName,
                     (const unsigned char*)&configInfo, size);
+        }
+        if (nvParamMgr) {
+            NvParamMgr::releaseInstance();
+            nvParamMgr = nullptr;
         }
     }
     if (NV_PARAM_ERR_NO_ERR == errorCode) {
