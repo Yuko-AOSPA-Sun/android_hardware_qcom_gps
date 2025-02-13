@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -255,6 +255,7 @@ GnssAdapter::GnssAdapter() :
     mAppHash(""),
     m3GppSourceMask(QDGNSS_3GPP_SOURCE_UNKNOWN),
 #ifdef _ANDROID_
+    // android only use SPE to generate nmea
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_SPE_BIT),
 #else
     mNmeaReqEngTypeMask(LOC_REQ_ENGINE_FUSED_BIT),
@@ -4983,14 +4984,20 @@ GnssAdapter::reportEnginePositions(unsigned int count,
                 fillElapsedRealTime(engLocation->locationExtended,
                                     locationInfo[i]);
             }
-
-#ifndef _ANDROID_
-            //Only generate and report NMEA with engine position on Auto platforms
-            reportPositionNmea(engLocation->location,
-                           engLocation->locationExtended,
-                           engLocation->sessionStatus,
-                           engLocation->location.tech_mask);
+            bool generateNmea = true;
+#ifdef _ANDROID_
+            // On Android, NMEA should only come from SPE engine
+            if ((GPS_LOCATION_EXTENDED_HAS_OUTPUT_ENG_TYPE & engLocation->locationExtended.flags) &&
+                (LOC_OUTPUT_ENGINE_SPE != engLocation->locationExtended.locOutputEngType)) {
+                generateNmea = false;
+            }
 #endif
+            if (generateNmea) {
+                reportPositionNmea(engLocation->location,
+                               engLocation->locationExtended,
+                               engLocation->sessionStatus,
+                               engLocation->location.tech_mask);
+            }
 
        }
 
