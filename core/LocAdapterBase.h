@@ -30,7 +30,7 @@
 /*
 Changes from Qualcomm Innovation Center are provided under the following license:
 
-Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted (subject to the limitations in the
@@ -198,6 +198,11 @@ public:
         mLocApi->updateEvtMask();
     }
 
+    inline void updateNmeaMask(uint32_t mask)
+    {
+        mLocApi->updateNmeaMask(mask);
+    }
+
     inline bool isFeatureSupported(uint8_t featureVal) {
         return ContextBase::isFeatureSupported(featureVal);
     }
@@ -225,9 +230,10 @@ public:
                                      const GpsLocationExtended& locationExtended,
                                      enum loc_sess_status status,
                                      LocPosTechMask loc_technology_mask,
-                                     GnssDataNotification* pDataNotify = nullptr);
+                                     GnssDataNotification* pDataNotify = nullptr,
+                                     int msInWeek = -1);
     virtual void reportSvEvent(const GnssSvNotification& svNotify);
-    virtual void reportDataEvent(const GnssDataNotification& dataNotify);
+    virtual void reportDataEvent(const GnssDataNotification& dataNotify, int msInWeek);
     virtual void reportNmeaEvent(const char* nmea, size_t length);
     virtual void reportSvPolynomialEvent(GnssSvPolynomial &svPolynomial);
     virtual void reportSvEphemerisEvent(GnssSvEphemerisReport &svEphemeris);
@@ -247,7 +253,8 @@ public:
                                       const LocInEmergency emergencyState);
     inline virtual bool isInSession() { return false; }
     ContextBase* getContext() const { return mContext; }
-    virtual void reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements);
+    virtual void reportGnssMeasurementsEvent(const GnssMeasurements& gnssMeasurements,
+                                                int msInWeek);
     virtual bool reportWwanZppFix(LocGpsLocation &zppLoc);
     virtual bool reportZppBestAvailableFix(LocGpsLocation &zppLoc,
             GpsLocationExtended &location_extended, LocPosTechMask tech_mask);
