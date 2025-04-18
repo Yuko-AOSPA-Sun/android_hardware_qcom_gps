@@ -1248,13 +1248,7 @@ GnssAdapter::readConfigCommand()
             mAdapter(adapter),
             mContext(context) {}
         inline virtual void proc() const {
-            static bool confReadDone = false;
-            if (!confReadDone) {
-                confReadDone = true;
-                // reads config into mContext->mGps_conf
-                mContext.readConfig();
-                mAdapter->readNfwLockConfig();
-            }
+            mAdapter->readNfwLockConfig();
         }
     };
 
@@ -3325,7 +3319,6 @@ GnssAdapter::handleEngineUpEvent()
         }
     };
 
-    readConfigCommand();
     sendMsg(new MsgHandleEngineUpEvent(*this, *mLocApi));
 }
 
