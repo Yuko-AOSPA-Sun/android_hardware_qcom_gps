@@ -81,44 +81,21 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gps_extended_c.h>
 
-//  Per QMI Loc API: qmiLocNavDataStructT_v02
-#define GPS_SV_ID_MIN    (1)   //1-32
-#define GLO_SV_ID_MIN    (65)  //65-96
-#define QZSS_SV_ID_MIN   (193) //193-197
-#define BDS_SV_ID_MIN    (201) //201-263
-#define GAL_SV_ID_MIN    (301) //301-336
-#define NAVIC_SV_ID_MIN  (401) //401-420
+#define GPS_MIN    (1)   //1-32
+#define GLO_MIN    (65)  //65-96
+#define QZSS_MIN   (193) //193-197
+#define BDS_MIN    (201) //201-263
+#define GAL_MIN    (301) //301-336
+#define NAVIC_MIN  (401) //401-420
 
-#define GPS_SV_ID_MAX    (32)   //1-32
-#define GLO_SV_ID_MAX    (96)  //65-96
-#define QZSS_SV_ID_MAX   (197) //193-197
-#define BDS_SV_ID_MAX    (263) //201-263
-#define GAL_SV_ID_MAX    (336) //301-336
-#define NAVIC_SV_ID_MAX  (420) //401-420
-
-#define GPS_SV_NUM    (GPS_SV_ID_MAX - GPS_SV_ID_MIN + 1)
-#define GLO_SV_NUM    (GLO_SV_ID_MAX - GLO_SV_ID_MIN + 1)
-#define QZSS_SV_NUM    (QZSS_SV_ID_MAX - QZSS_SV_ID_MIN + 1)
-#define BDS_SV_NUM     (BDS_SV_ID_MAX - BDS_SV_ID_MIN + 1)
-#define GAL_SV_NUM     (GAL_SV_ID_MAX - GAL_SV_ID_MIN + 1)
-#define NAVIC_SV_NUM   (NAVIC_SV_ID_MAX - NAVIC_SV_ID_MIN + 1)
-
-#define GPS_SV_INDEX_OFFSET   (0)
-#define GLO_SV_INDEX_OFFSET   (GPS_SV_INDEX_OFFSET + GPS_SV_NUM)
-#define QZSS_SV_INDEX_OFFSET  (GLO_SV_INDEX_OFFSET + GLO_SV_NUM)
-#define BDS_SV_INDEX_OFFSET   (QZSS_SV_INDEX_OFFSET + QZSS_SV_NUM)
-#define GAL_SV_INDEX_OFFSET   (BDS_SV_INDEX_OFFSET + BDS_SV_NUM)
-#define NAVIC_SV_INDEX_OFFSET (GAL_SV_INDEX_OFFSET + GAL_SV_NUM)
-
-#define SV_ALL_NUM  (GPS_SV_NUM + GLO_SV_NUM + QZSS_SV_NUM + \
-                  BDS_SV_NUM + GAL_SV_NUM + NAVIC_SV_NUM )
-
-#define GNSS_BUGREPORT_GPS_SV_ID_MIN    (1)
-#define GNSS_BUGREPORT_GLO_SV_ID_MIN    (1)
-#define GNSS_BUGREPORT_QZSS_SV_ID_MIN   (193)
-#define GNSS_BUGREPORT_BDS_SV_ID_MIN    (1)
-#define GNSS_BUGREPORT_GAL_SV_ID_MIN    (1)
-#define GNSS_BUGREPORT_NAVIC_SV_ID_MIN  (1)
+#define GPS_NUM     (32)
+#define GLO_NUM     (32)
+#define QZSS_NUM    (5)
+#define BDS_NUM     (63)
+#define GAL_NUM     (36)
+#define NAVIC_NUM   (20)
+#define SV_ALL_NUM_MIN  (GPS_NUM + GLO_NUM + QZSS_NUM + BDS_NUM + GAL_NUM)
+#define SV_ALL_NUM (SV_ALL_NUM_MIN + NAVIC_NUM)
 
 namespace loc_core
 {
@@ -166,6 +143,7 @@ public:
     void dump(void) override;
 };
 
+class SystemStatusPQWM1;
 class SystemStatusTimeAndClock : public SystemStatusItemBase
 {
 public:
@@ -190,7 +168,7 @@ public:
         mLeapSeconds(0),
         mLeapSecUnc(0),
         mTimeUncNs(0ULL) {}
-    inline SystemStatusTimeAndClock(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusTimeAndClock(const SystemStatusPQWM1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
@@ -201,7 +179,7 @@ public:
     uint8_t  mXoState;
     inline SystemStatusXoState() :
         mXoState(0) {}
-    inline SystemStatusXoState(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusXoState(const SystemStatusPQWM1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
@@ -209,20 +187,41 @@ public:
 class SystemStatusRfAndParams : public SystemStatusItemBase
 {
 public:
-    uint32_t mJammedSignalsMask;
+    int32_t  mPgaGain;
+    int32_t mGpsBpAmpI;
+    int32_t mGpsBpAmpQ;
+    int32_t mAdcI;
+    int32_t mAdcQ;
     uint32_t mJammerGps;
     uint32_t mJammerGlo;
     uint32_t mJammerBds;
     uint32_t mJammerGal;
+    int32_t mGloBpAmpI;
+    int32_t mGloBpAmpQ;
+    int32_t mBdsBpAmpI;
+    int32_t mBdsBpAmpQ;
+    int32_t mGalBpAmpI;
+    int32_t mGalBpAmpQ;
+    uint32_t mJammedSignalsMask;
     std::vector<int32_t> mJammerInd;
-
     inline SystemStatusRfAndParams() :
+        mPgaGain(INT32_MIN),
+        mGpsBpAmpI(INT32_MIN),
+        mGpsBpAmpQ(INT32_MIN),
+        mAdcI(INT32_MIN),
+        mAdcQ(INT32_MIN),
         mJammerGps(0),
         mJammerGlo(0),
         mJammerBds(0),
         mJammerGal(0),
+        mGloBpAmpI(INT32_MIN),
+        mGloBpAmpQ(INT32_MIN),
+        mBdsBpAmpI(INT32_MIN),
+        mBdsBpAmpQ(INT32_MIN),
+        mGalBpAmpI(INT32_MIN),
+        mGalBpAmpQ(INT32_MIN),
         mJammedSignalsMask(0) {}
-    inline SystemStatusRfAndParams(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusRfAndParams(const SystemStatusPQWM1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
@@ -233,12 +232,13 @@ public:
     uint32_t mRecErrorRecovery;
     inline SystemStatusErrRecovery() :
         mRecErrorRecovery(0) {};
-    inline SystemStatusErrRecovery(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusErrRecovery(const SystemStatusPQWM1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     inline bool ignore() override { return 0 == mRecErrorRecovery; };
     void dump(void) override;
 };
 
+class SystemStatusPQWP1;
 class SystemStatusInjectedPosition : public SystemStatusItemBase
 {
 public:
@@ -257,11 +257,12 @@ public:
         mEpiHepe(0),
         mEpiAltUnc(0),
         mEpiSrc(0) {}
-    inline SystemStatusInjectedPosition(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusInjectedPosition(const SystemStatusPQWP1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWP2;
 class SystemStatusBestPosition : public SystemStatusItemBase
 {
 public:
@@ -278,11 +279,12 @@ public:
         mBestAlt(0),
         mBestHepe(0),
         mBestAltUnc(0) {}
-    inline SystemStatusBestPosition(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusBestPosition(const SystemStatusPQWP2& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWP3;
 class SystemStatusXtra : public SystemStatusItemBase
 {
 public:
@@ -313,11 +315,12 @@ public:
         mGalXtraValid(0ULL),
         mQzssXtraValid(0),
         mNavicXtraValid(0) {}
-    inline SystemStatusXtra(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusXtra(const SystemStatusPQWP3& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWP4;
 class SystemStatusEphemeris : public SystemStatusItemBase
 {
 public:
@@ -327,7 +330,6 @@ public:
     uint64_t  mGalEpheValid;
     uint8_t   mQzssEpheValid;
     uint32_t  mNavicEpheValid;
-
     inline SystemStatusEphemeris() :
         mGpsEpheValid(0),
         mGloEpheValid(0),
@@ -335,12 +337,12 @@ public:
         mGalEpheValid(0ULL),
         mQzssEpheValid(0),
         mNavicEpheValid(0) {}
-
-    inline SystemStatusEphemeris(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusEphemeris(const SystemStatusPQWP4& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWP5;
 class SystemStatusSvHealth : public SystemStatusItemBase
 {
 public:
@@ -381,23 +383,24 @@ public:
         mGalBadMask(0ULL),
         mQzssBadMask(0),
         mNavicBadMask(0) {}
-    inline SystemStatusSvHealth(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusSvHealth(const SystemStatusPQWP5& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWP6;
 class SystemStatusPdr : public SystemStatusItemBase
 {
 public:
     uint32_t  mFixInfoMask;
     inline SystemStatusPdr() :
         mFixInfoMask(0) {}
-    inline SystemStatusPdr(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusPdr(const SystemStatusPQWP6& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
-
 };
 
+class SystemStatusPQWP7;
 struct SystemStatusNav
 {
     GnssEphemerisType   mType;
@@ -410,15 +413,18 @@ class SystemStatusNavData : public SystemStatusItemBase
 public:
     SystemStatusNav mNav[SV_ALL_NUM];
     inline SystemStatusNavData() {
-        // GNSS_EPH_TYPE_UNKNOWN and GNSS_EPH_TYPE_UNKNOWN are 0
-        memset(mNav, 0, sizeof (mNav));
+        for (uint32_t i=0; i<SV_ALL_NUM; i++) {
+            mNav[i].mType = GNSS_EPH_TYPE_UNKNOWN;
+            mNav[i].mSource = GNSS_EPH_SOURCE_UNKNOWN;
+            mNav[i].mAgeSec = 0;
+        }
     }
-
-    inline SystemStatusNavData(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusNavData(const SystemStatusPQWP7& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
 
+class SystemStatusPQWS1;
 class SystemStatusPositionFailure : public SystemStatusItemBase
 {
 public:
@@ -427,7 +433,7 @@ public:
     inline SystemStatusPositionFailure() :
         mFixInfoMask(0),
         mHepeLimit(0) {}
-    inline SystemStatusPositionFailure(const GnssEngineDebugDataInfo& info);
+    inline SystemStatusPositionFailure(const SystemStatusPQWS1& nmea);
     bool equals(const SystemStatusItemBase& peer) override;
     void dump(void) override;
 };
@@ -866,13 +872,13 @@ public:
     // from QMI_LOC indication
     std::vector<SystemStatusLocation>         mLocation;
 
-    // from ME debug info
+    // from ME debug NMEA
     std::vector<SystemStatusTimeAndClock>     mTimeAndClock;
     std::vector<SystemStatusXoState>          mXoState;
     std::vector<SystemStatusRfAndParams>      mRfAndParams;
     std::vector<SystemStatusErrRecovery>      mErrRecovery;
 
-    // from PE debug info
+    // from PE debug NMEA
     std::vector<SystemStatusInjectedPosition> mInjectedPosition;
     std::vector<SystemStatusBestPosition>     mBestPosition;
     std::vector<SystemStatusXtra>             mXtra;
@@ -881,7 +887,7 @@ public:
     std::vector<SystemStatusPdr>              mPdr;
     std::vector<SystemStatusNavData>          mNavData;
 
-    // from SM debug info
+    // from SM debug NMEA
     std::vector<SystemStatusPositionFailure>  mPositionFailure;
 
     // from dataitems observer
@@ -946,6 +952,7 @@ public:
     // Helpers
     bool eventPosition(const UlpLocation& location,const GpsLocationExtended& locationEx);
     bool eventDataItemNotify(IDataItemCore* dataitem);
+    bool setNmeaString(const char *data, uint32_t len);
     void setEngineDebugDataInfo(const GnssEngineDebugDataInfo& gnssEngineDebugDataInfo);
     bool getReport(SystemStatusReports& reports, bool isLatestonly = false,
             bool inSessionOnly = true) const;

@@ -101,6 +101,7 @@ const loc_param_s_type ContextBase::mGps_conf_table[] =
   {"SUPL_ES",                        &mGps_conf.SUPL_ES,                        NULL, 'n'},
   {"INTERMEDIATE_POS",               &mGps_conf.INTERMEDIATE_POS,               NULL, 'n'},
   {"ACCURACY_THRES",                 &mGps_conf.ACCURACY_THRES,                 NULL, 'n'},
+  {"NMEA_PROVIDER",                  &mGps_conf.NMEA_PROVIDER,                  NULL, 'n'},
   {"NMEA_REPORT_RATE",               &mGps_conf.NMEA_REPORT_RATE,               NULL, 's'},
   {"CAPABILITIES",                   &mGps_conf.CAPABILITIES,                   NULL, 'n'},
   {"XTRA_SERVER_1",                  &mGps_conf.XTRA_SERVER_1,                  NULL, 's'},
@@ -161,6 +162,7 @@ void ContextBase::readConfig()
         /*Defaults for gps.conf*/
         mGps_conf.INTERMEDIATE_POS = 0;
         mGps_conf.ACCURACY_THRES = 0;
+        mGps_conf.NMEA_PROVIDER = 0;
 #ifdef FEATURE_AUTOMOTIVE
         mGps_conf.GPS_LOCK = GNSS_CONFIG_GPS_LOCK_MO_AND_NI & (~GNSS_CONFIG_GPS_LOCK_NFW_V2X);
 #else
